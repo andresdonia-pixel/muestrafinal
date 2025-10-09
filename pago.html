@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Instrucciones de Pago - Reserva Auditorio</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #fff8e1; /* Fondo suave para indicar "espera" */
+            display: flex;
+            justify-content: center;
+            padding: 30px;
+        }
+        .contenedor-pago {
+            width: 100%;
+            max-width: 650px;
+            background-color: white;
+            border: 3px solid #ffcc80;
+            padding: 40px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            text-align: center;
+        }
+        h1 {
+            color: #ff9800; /* Naranja de advertencia/pago */
+            border-bottom: 2px solid #ffcc80;
+            padding-bottom: 10px;
+            margin-bottom: 25px;
+        }
+        .alerta {
+            background-color: #fff3e0;
+            border: 1px solid #ff9800;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-weight: bold;
+            color: #e65100;
+        }
+        .datos-transferencia {
+            text-align: left;
+            margin: 30px auto;
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .datos-transferencia p {
+            margin: 10px 0;
+            font-size: 1.1em;
+            color: #333;
+        }
+        .datos-transferencia strong {
+            display: inline-block;
+            width: 150px;
+            color: #555;
+        }
+        .butacas-list {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-top: 15px;
+        }
+        .acciones {
+            margin-top: 30px;
+        }
+        .acciones button {
+            padding: 10px 20px;
+            background-color: #607d8b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="contenedor-pago">
+        <h1>⏳ Pre-reserva en Espera de Pago</h1>
+        
+        <div class="alerta">
+            Su pre-reserva de **<span id="cantidad-entradas"></span>** butacas está pendiente.<br>
+            Tiene **24 horas** para realizar la transferencia, de lo contrario, las butacas se liberarán automáticamente.
+        </div>
+
+        <h2>Instrucciones para la Transferencia</h2>
+        
+        <div class="datos-transferencia">
+            <p><strong>Butacas Pre-reservadas:</strong> <span id="lista-butacas"></span></p>
+            <p><strong>Monto Total:</strong> **$ <span id="monto-total">1.500</span>**</p>
+            <hr style="margin: 15px 0;">
+            <p><strong>CBU:</strong> 0000003100000000000000</p>
+            <p><strong>Alias:</strong> AUDITORIO.ARMENIA.CBU</p>
+            <p><strong>Titular:</strong> Asociación Auditorio Armenia</p>
+        </div>
+
+        <p style="font-size: 1.1em; color: #cc0000; font-weight: bold;">
+            **IMPORTANTE:** Envíe el **comprobante de transferencia** al correo de la administración (<span style="text-decoration: underline;">admin@auditorioarmenia.com.ar</span>) para que su reserva sea confirmada manualmente.
+        </p>
+
+        <div class="acciones">
+            <button onclick="window.location.href = 'login.html'">Volver a Ingresar / Verificar Estado</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Cargar datos de la pre-reserva desde la sesión
+            const dni = sessionStorage.getItem('pagoDNI');
+            const butacas = JSON.parse(sessionStorage.getItem('pagoButacas'));
+            
+            if (!dni || !butacas || butacas.length === 0) {
+                alert('Error al cargar la pre-reserva. Regresando al inicio.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Simulación de monto (Ajuste el precio unitario si es necesario)
+            const precioUnitario = 1500; 
+            const montoTotal = butacas.length * precioUnitario;
+
+            // Insertar datos en el HTML
+            document.getElementById('cantidad-entradas').textContent = butacas.length;
+            document.getElementById('lista-butacas').textContent = butacas.join(' | ');
+            document.getElementById('monto-total').textContent = montoTotal.toLocaleString('es-AR', { style: 'decimal' }); // Formato de miles
+
+            // Limpiar datos temporales de la sesión
+            sessionStorage.removeItem('pagoDNI');
+            sessionStorage.removeItem('pagoButacas');
+        });
+    </script>
+</body>
+</html>
