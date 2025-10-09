@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reserva de Entradas - Auditorio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        /* --- Estilos Base --- */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        /* --- Login Section --- */
+        #login-section {
+            padding: 40px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 30px;
+        }
+        #input-dni {
+            padding: 10px;
+            margin: 10px 0;
+            width: 250px;
+            text-align: center;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1.2em;
+        }
+        #login-section button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1em;
+        }
+        #login-section button:hover {
+            background-color: #2980b9;
+        }
+        /* --- Auditorium Section --- */
+        #auditorium-section {
+            margin-top: 20px;
+            text-align: center; /* 🟢 CORRECCIÓN 1: Centra elementos inline-block */
+        }
+        .welcome-alert {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            text-align: left;
+            font-weight: bold;
+        }
+        .error-alert {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .legend {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .legend span {
+            margin: 0 15px;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+        .legend .disponible { background-color: #2ecc71; color: white; }
+        .legend .pendiente { background-color: #f39c12; color: white; }
+        .legend .confirmado { background-color: #e74c3c; color: white; }
+        .legend .seleccionado { background-color: #3498db; color: white; }
+
+        /* --- Seat Map (Centrado Corregido) --- */
+        .seat-map {
+            display: inline-block; /* 🟢 CORRECCIÓN 2: Permite que el mapa sea centrado por el padre */
+            background-color: #34495e; 
+            padding: 20px 10px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+        }
+        .row-container {
+            display: flex;
+            align-items: center;
+            justify-content: center; /* Intento forzar centrado de las filas */
+            margin-bottom: 5px;
+        }
+        .row-label {
+            font-weight: bold;
+            color: white;
+            padding-right: 10px;
+            width: 40px; 
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .seat {
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            margin: 2px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7em;
+            color: white;
+            font-weight: bold;
+            display: inline-block;
+            text-align: center;
+            user-select: none;
+            transition: transform 0.1s;
+        }
+        .seat-empty {
+            background-color: transparent;
+            cursor: default;
+            visibility: hidden;
+            border: none;
+        }
+        .seat.disponible { background-color: #2ecc71; }
+        .seat.pendiente { background-color: #f39c12; cursor: default; }
+        .seat.confirmado { background-color: #e74c3c; cursor: default; }
+        .seat.seleccionado { background-color: #3498db; }
+
+        .seat.disponible:hover {
+            transform: scale(1.1);
+        }
+
+        .stage, .cabin {
+            background-color: #c0392b;
+            color: white;
+            padding: 10px 0;
+            margin: 10px 0;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 4px;
+        }
+        .cabin {
+            background-color: #34495e; 
+            border: 2px solid #2c3e50;
+        }
+
+        /* --- Footer/Actions --- */
+        .selection-summary {
+            margin-top: 15px;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        .selection-summary span {
+            color: #3498db;
+        }
+        #reserve-button {
+            padding: 15px 30px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.2em;
+            margin-top: 20px;
+            transition: background-color 0.2s;
+        }
+        #reserve-button:hover:not(:disabled) {
+            background-color: #2ecc71;
+        }
+        #reserve-button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .logout-button {
+            margin-top: 20px;
+            padding: 8px 15px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Sistema de Reserva de Entradas</h1>
+
+        <div id="login-section" style="display: block;">
+            <h2>Verificación de Acceso</h2>
+            <input type="text" id="input-dni" placeholder="Ingrese su DNI (sin puntos)">
+            <button onclick="validarDNI()">Acceder al Auditorio</button>
+            <p>Solo DNI autorizados pueden acceder a la reserva.</p>
+        </div>
+
+        <div id="auditorium-section" style="display: none;">
+            
+            <div id="welcome-alert" class="welcome-alert">
+                 <span id="welcome-message"></span>
+                 <p>Puede seleccionar hasta **<span id="max-tickets-display">0</span>** entradas que le corresponden a su familia.</p>
+            </div>
+            
+            <div id="error-alert" class="error-alert" style="display:none;">
+                <p>⚠️ **Cupo agotado.** Ya no quedan cupos disponibles para reservar.</p>
+            </div>
+            
+            <div class="legend">
+                Leyenda:
+                <span class="disponible">Disponible</span>
+                <span class="pendiente">Reservado (Pendiente)</span>
+                <span class="confirmado">Vendido (Confirmado)</span>
+                <span class="seleccionado">Seleccionado</span>
+            </div>
+            
+            <div class="stage">ESCENARIO</div>
+            
+            <div class="seat-map" id="seat-map-container">
+                </div>
+            
+            <div class="cabin">CABINA</div>
+
+            <div class="selection-summary">
+                Cupo Consumido: <span id="consumed-tickets">0</span> de <span id="total-cupo">0</span><br>
+                Entradas Seleccionadas: <span id="selected-tickets-count">0</span><br>
+                Butacas Elegidas: <span id="selected-butacas-visual">Ninguna</span>
+            </div>
+            
+            <button id="reserve-button" onclick="reservarButacas()">Reservar Butacas Seleccionadas</button>
+            <button class="logout-button" onclick="logoutUser()">Cerrar Sesión / Cambiar DNI</button>
+        </div>
+        
+    </div>
+
+    <script>
+        // --- FIREBASE V8 INICIALIZACIÓN ---
+        
+        // ⚠️ CONFIGURACIÓN DE FIREBASE (Debe ser idéntica a admin.html)
+        const firebaseConfig = {
+          apiKey: "AIzaSyC_q9XUxb5e0X4wS4cB168Hh7-fG9Hmq",
+          authDomain: "ventaentradasorne.firebaseapp.com",
+          databaseURL: "https://ventaentradasorne-default-rtdb.firebaseio.com",
+          projectId: "ventaentradasorne",
+          storageBucket: "ventaentradasorne.appspot.com",
+          messagingSenderId: "10786673844635",
+          appId: "1:10786673844635:web:bd8a949271a5a7691e39e"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        
+        // --- VARIABLES GLOBALES ---
+        let selectedSeats = [];
+        let BUTACAS_PENDIENTES = 0;
+        let MAX_TICKETS = 0;
+        let REMAINING_CUPOS = 0;
+        let USER_DNI = '';
+        let USER_KEY = '';
+        let USER_APELLIDO = '';
+
+        // --- CONFIGURACIÓN DEL PLANO (COPIA DE admin.html) ---
+        const createCenterSplitBlock = (maxPair, maxOdd) => {
+            const leftBlock = [];
+            for (let i = maxPair; i >= 2; i -= 2) { leftBlock.push(i); }
+            const rightBlock = [];
+            for (let i = 1; i <= maxOdd; i += 2) { rightBlock.push(i); }
+            return [...leftBlock, ...rightBlock]; 
+        };
+        
+        const DISENO_AUDITORIO = {
+            'Fila 1': [...createCenterSplitBlock(18, 23), null], 
+            'Fila 2': [null, ...createCenterSplitBlock(24, 23), null], 
+            'Fila 3': [null, ...createCenterSplitBlock(24, 25), null],
+            'Fila 4': [null, ...createCenterSplitBlock(26, 27), null], 
+            'Fila 5': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 6': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 7': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 8': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 9': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 10': [null, ...createCenterSplitBlock(26, 25), null], 
+            'Fila 11': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null], 
+            'Fila 12': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null],
+            'Fila 13': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null],
+            'Fila 14': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null],
+            'Fila 15': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null],
+            'Fila 16': [24, 22, 20, 18, null, ...createCenterSplitBlock(16, 15), null, 17, 19, 21, 23], 
+            'Fila 17': [26, 24, 22, 20, 18, null, ...createCenterSplitBlock(12, 11), null, 13, 15, 17, 19, 21], 
+            'Fila 18': [22, 20, 18, 16, 14, null, ...createCenterSplitBlock(12, 11), null, 13, 15, 17, 19, 21],
+        };
+        
+        // --- INICIALIZACIÓN Y VALIDACIÓN DE SESIÓN (SOLUCIÓN DOBLE DNI) ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Intentar recuperar la sesión guardada
+            const dni = localStorage.getItem('userDNI');
+            const cupo = parseInt(localStorage.getItem('userCupo'));
+            const key = localStorage.getItem('userKey');
+            const apellido = localStorage.getItem('userApellido');
+            
+            if (dni && key && !isNaN(cupo)) {
+                // Sesión encontrada: Omitir el login
+                USER_DNI = dni;
+                USER_KEY = key;
+                MAX_TICKETS = cupo;
+                USER_APELLIDO = apellido;
+                
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('auditorium-section').style.display = 'block';
+                
+                // Cargar datos y butacas
+                iniciarSincronizacion(USER_DNI);
+            } else {
+                // No hay sesión: Mostrar el login
+                document.getElementById('login-section').style.display = 'block';
+                document.getElementById('auditorium-section').style.display = 'none';
+            }
+        });
+
+        /** 🟢 Maneja el acceso. Solo se ejecuta al hacer clic en el botón. */
+        async function validarDNI() {
+            const inputDNI = document.getElementById('input-dni').value.trim();
+            const loginSection = document.getElementById('login-section');
+            const auditoriumSection = document.getElementById('auditorium-section');
+
+            if (!inputDNI) {
+                alert("Por favor, ingrese su número de DNI.");
+                return;
+            }
+
+            try {
+                // 1. Buscar el cupo en la base de datos
+                const confirmadasRef = db.ref('reservasConfirmadas');
+                // Buscamos el DNI en cualquier clave
+                const snapshot = await confirmadasRef.orderByChild('dni').equalTo(inputDNI).once('value');
+                const cupoData = snapshot.val();
+
+                if (cupoData) {
+                    // DNI encontrado: Obtener clave y datos
+                    const key = Object.keys(cupoData)[0];
+                    const cupo = cupoData[key];
+                    
+                    // 2. Asignar variables globales y guardar en localStorage 
+                    USER_DNI = inputDNI;
+                    USER_KEY = key;
+                    MAX_TICKETS = cupo.entradas;
+                    USER_APELLIDO = cupo.apellido || 'Invitada'; 
+                    
+                    localStorage.setItem('userDNI', USER_DNI);
+                    localStorage.setItem('userKey', USER_KEY); 
+                    localStorage.setItem('userCupo', MAX_TICKETS);
+                    localStorage.setItem('userApellido', USER_APELLIDO); 
+                    
+                    // 3. Mostrar el auditorio y ocultar el login
+                    loginSection.style.display = 'none';
+                    auditoriumSection.style.display = 'block';
+                    
+                    // 4. Iniciar la sincronización de asientos
+                    iniciarSincronizacion(USER_DNI);
+
+                    // 5. Muestra el mensaje de bienvenida con el apellido CORREGIDO
+                    alert(`¡Bienvenido, Familia ${USER_APELLIDO}! Acceso autorizado.`); 
+
+                } else {
+                    // DNI no encontrado: Limpiar localStorage para evitar sesiones fantasma
+                    logoutUser(false); // No recargar
+                    alert("DNI no autorizado o no se encontró en la lista de cupos.");
+                }
+
+            } catch (error) {
+                console.error("Error en la validación de DNI:", error);
+                alert("Ocurrió un error al verificar su DNI.");
+            }
+        }
+        
+        /** 🟢 Cierra la sesión y limpia el almacenamiento local (Solución DATO FANTASMA) */
+        function logoutUser(reload = true) {
+            localStorage.removeItem('userDNI');
+            localStorage.removeItem('userKey');
+            localStorage.removeItem('userCupo');
+            localStorage.removeItem('userApellido');
+            
+            // Limpiar variables globales (opcional, pero buena práctica)
+            USER_DNI = '';
+            USER_KEY = '';
+            MAX_TICKETS = 0;
+            REMAINING_CUPOS = 0;
+            selectedSeats = [];
+            
+            if (reload) {
+                alert('Sesión cerrada. Por favor, ingrese su DNI nuevamente.');
+                window.location.reload(); 
+            }
+        }
+
+        /** Inicia los listeners de Firebase */
+        function iniciarSincronizacion(dni) {
+            // 1. Sincronizar Asientos (para el mapa)
+            db.ref('asientos').on('value', (snapshot) => {
+                const asientos = snapshot.val() || [];
+                renderAuditorium(asientos);
+                // Si ya se ha inicializado el cupo, actualiza el mensaje
+                if(MAX_TICKETS > 0) {
+                   updateWelcomeMessage();
+                }
+            });
+            
+            // 2. Sincronizar el Cupo del Usuario (para saber cuántas quedan)
+            // Se sincroniza por DNI para obtener la cantidad de entradas usadas
+            db.ref('preReservas').orderByChild('dni').equalTo(dni).on('value', (snapshot) => {
+                let consumed = 0;
+                snapshot.forEach(childSnapshot => {
+                    const reserva = childSnapshot.val();
+                    // Contar solo las reservas confirmadas como entradas consumidas
+                    if (reserva.estado === 'CONFIRMADO') {
+                        consumed += reserva.cantidad;
+                    }
+                });
+                
+                // Actualizar las variables globales del cupo
+                document.getElementById('total-cupo').textContent = MAX_TICKETS;
+                document.getElementById('consumed-tickets').textContent = consumed;
+
+                REMAINING_CUPOS = MAX_TICKETS - consumed;
+                
+                if (REMAINING_CUPOS < 0) { REMAINING_CUPOS = 0; } // Evitar negativos
+                
+                updateWelcomeMessage();
+                updateReserveButtonState();
+
+                if (REMAINING_CUPOS === 0) {
+                    // Esto oculta el mapa si el cupo es cero
+                    document.getElementById('error-alert').style.display = 'block';
+                    document.getElementById('max-tickets-display').textContent = '0';
+                    document.getElementById('seat-map-container').style.opacity = '0.5'; // Atenuar el mapa
+                } else {
+                    document.getElementById('error-alert').style.display = 'none';
+                    document.getElementById('max-tickets-display').textContent = REMAINING_CUPOS;
+                    document.getElementById('seat-map-container').style.opacity = '1';
+                }
+            });
+        }
+        
+        /** Actualiza el mensaje de bienvenida y el cupo disponible */
+        function updateWelcomeMessage() {
+            const msg = document.getElementById('welcome-message');
+            msg.innerHTML = `**BIENVENIDOS, Familia ${USER_APELLIDO}**. Le quedan "**${REMAINING_CUPOS}**" de "**${MAX_TICKETS}**" entradas disponibles.`;
+        }
+
+        // --- LÓGICA DE RENDERIZADO DEL MAPA ---
+
+        /** Dibuja el mapa y actualiza el estado de las butacas */
+        function renderAuditorium(asientos) {
+            const container = document.getElementById('seat-map-container');
+            container.innerHTML = ''; // Limpiar el mapa
+
+            for (const [filaLabel, asientosFila] of Object.entries(DISENO_AUDITORIO)) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'row-container';
+
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'row-label';
+                labelDiv.textContent = filaLabel.replace('Fila ', 'F');
+                rowDiv.appendChild(labelDiv);
+
+                asientosFila.forEach(butacaNum => {
+                    const seatDiv = document.createElement('div');
+                    
+                    if (butacaNum === null) {
+                        seatDiv.className = 'seat seat-empty';
+                        seatDiv.style.width = '10px'; 
+                        seatDiv.style.margin = '2px 5px';
+                    } else {
+                        const seatIdInternal = `${filaLabel.replace(' ', '')}-${butacaNum}`; // Ej: Fila1-18
+                        seatDiv.className = 'seat';
+                        seatDiv.textContent = butacaNum;
+                        seatDiv.dataset.id = seatIdInternal;
+                        seatDiv.dataset.visual = `${filaLabel.replace('Fila ', 'F')}-${butacaNum}`; // Ej: F1-18
+
+                        // Determinar el estado por Firebase
+                        let status = 'disponible';
+                        if (asientos.includes(`${seatIdInternal}-CONFIRMADO`)) {
+                            status = 'confirmado';
+                        } else if (asientos.includes(`${seatIdInternal}-PENDIENTE`)) {
+                            status = 'pendiente';
+                        }
+                        
+                        // Si está seleccionada localmente
+                        if (selectedSeats.some(s => s.id === seatIdInternal)) {
+                            status = 'seleccionado';
+                        }
+
+                        seatDiv.classList.add(status);
+                        
+                        // Añadir evento de clic solo si está disponible
+                        if (status === 'disponible' || status === 'seleccionado') {
+                            seatDiv.onclick = toggleSeatSelection;
+                        } else {
+                            seatDiv.style.cursor = 'default';
+                        }
+                    }
+                    rowDiv.appendChild(seatDiv);
+                });
+                container.appendChild(rowDiv);
+            }
+            updateSelectionDisplay();
+        }
+
+        // --- LÓGICA DE SELECCIÓN ---
+
+        function toggleSeatSelection(event) {
+            if (REMAINING_CUPOS === 0) {
+                 alert('Su cupo está agotado. No puede seleccionar más butacas.');
+                 return;
+            }
+            
+            const seatElement = event.target;
+            const seatId = seatElement.dataset.id;
+            const seatVisual = seatElement.dataset.visual;
+            const isSelected = selectedSeats.some(s => s.id === seatId);
+
+            if (isSelected) {
+                // Deseleccionar
+                selectedSeats = selectedSeats.filter(s => s.id !== seatId);
+                seatElement.classList.remove('seleccionado');
+                seatElement.classList.add('disponible');
+            } else {
+                // Seleccionar
+                if (selectedSeats.length >= REMAINING_CUPOS) {
+                    alert(`Solo puede seleccionar hasta ${REMAINING_CUPOS} butaca(s) restante(s).`);
+                    return;
+                }
+                
+                selectedSeats.push({ id: seatId, visual: seatVisual });
+                seatElement.classList.remove('disponible');
+                seatElement.classList.add('seleccionado');
+            }
+
+            updateSelectionDisplay();
+        }
+
+        function updateSelectionDisplay() {
+            const visualButacas = selectedSeats.map(s => s.visual).join(', ');
+            document.getElementById('selected-butacas-visual').textContent = visualButacas || 'Ninguna';
+            document.getElementById('selected-tickets-count').textContent = selectedSeats.length;
+            updateReserveButtonState();
+        }
+        
+        function updateReserveButtonState() {
+            const button = document.getElementById('reserve-button');
+            const selectedCount = selectedSeats.length;
+            
+            if (selectedCount > 0 && selectedCount <= REMAINING_CUPOS && REMAINING_CUPOS > 0) {
+                button.disabled = false;
+                button.textContent = `Reservar ${selectedCount} Butaca(s) Seleccionada(s)`;
+            } else {
+                button.disabled = true;
+                button.textContent = 'Seleccione butacas para reservar';
+            }
+        }
+
+        // --- LÓGICA DE RESERVA ---
+
+        async function reservarButacas() {
+            if (selectedSeats.length === 0) {
+                alert("Por favor, seleccione al menos una butaca.");
+                return;
+            }
+
+            if (selectedSeats.length > REMAINING_CUPOS) {
+                 alert(`Solo puede reservar ${REMAINING_CUPOS} butaca(s) restante(s).`);
+                return;
+            }
+
+            if (!confirm(`Confirmar reserva de ${selectedSeats.length} butaca(s) a nombre de Familia ${USER_APELLIDO} (DNI ${USER_DNI}). ¿Continuar?`)) {
+                return;
+            }
+
+            try {
+                // Generar la referencia de la reserva (única)
+                const referencia = `REF-${USER_DNI}-${Date.now()}`;
+                const timestamp = Date.now();
+                
+                // Expiración: 30 minutos a partir de ahora (en milisegundos)
+                const expirationTime = timestamp + (30 * 60 * 1000); 
+
+                const internalIDs = selectedSeats.map(s => s.id);
+                const visualIDs = selectedSeats.map(s => s.visual);
+
+                const newReservaData = {
+                    dni: USER_DNI,
+                    nombre: USER_APELLIDO, 
+                    cantidad: selectedSeats.length,
+                    butacas_internal_ids: internalIDs, 
+                    butacas_visuales: visualIDs, 
+                    referencia: referencia,
+                    estado: 'PENDIENTE',
+                    timestamp: timestamp,
+                    expiracion: expirationTime
+                };
+                
+                const updates = {};
+                
+                // 1. Añadir la reserva a preReservas
+                const newReservaKey = db.ref('preReservas').push(newReservaData).key;
+                
+                // 2. Marcar las butacas como PENDIENTE en la lista de asientos
+                const asientosSnapshot = await db.ref('asientos').once('value');
+                let asientos = asientosSnapshot.val() || [];
+
+                internalIDs.forEach(id => {
+                    const pendienteID = `${id}-PENDIENTE`;
+                    // Solo añadir si no existe ya (doble chequeo)
+                    if (asientos.indexOf(pendienteID) === -1 && asientos.indexOf(`${id}-CONFIRMADO`) === -1) {
+                        asientos.push(pendienteID);
+                    }
+                });
+                
+                updates['asientos'] = asientos;
+                
+                await db.ref('/').update(updates);
+                
+                alert(`✅ Reserva exitosa! Tienes 30 minutos para confirmar tu pago con el DNI ${USER_DNI}. Referencia: ${referencia}`);
+
+                // Limpiar la selección local
+                selectedSeats = [];
+                // La sincronización automática actualizará el mapa
+                
+            } catch (error) {
+                console.error("Error al realizar la reserva:", error);
+                alert('Ocurrió un error al intentar reservar las butacas. Intente nuevamente.');
+            }
+        }
+    </script>
+</body>
+</html>

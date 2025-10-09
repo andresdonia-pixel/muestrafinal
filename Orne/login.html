@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Acceso al Sistema de Reservas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .login-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0 20px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1.1em;
+            text-align: center;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 14px 20px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1em;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .loading-message {
+            color: #e67e22;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h1>Verificación de Acceso</h1>
+        <p>Ingrese su DNI (sin puntos) para confirmar su autorización de reserva:</p>
+
+        <input type="number" id="dni-input" placeholder="DNI (Ej: 99888777)">
+        
+        <button onclick="validarDNI()" id="btn-acceder">Acceder al Auditorio</button>
+
+        <p class="loading-message" id="loading-status">Cargando lista de alumnos...</p>
+    </div>
+
+    <script>
+        // --- FIREBASE V8 INICIALIZACIÓN ---
+        
+        // ⚠️ PEGA AQUÍ TU CONFIGURACIÓN DE FIREBASE 
+        const firebaseConfig = {
+          apiKey: "AIzaSyC_q9XUxb5e0X4wS4cB168Hh7-fG9Hmq",
+          authDomain: "ventaentradasorne.firebaseapp.com",
+          databaseURL: "https://ventaentradasorne-default-rtdb.firebaseio.com",
+          projectId: "ventaentradasorne",
+          storageBucket: "ventaentradasorne.appspot.com",
+          messagingSenderId: "10786673844635",
+          appId: "1:10786673844635:web:bd8a949271a5a7691e39e"
+        };
+        
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        
+        // Objeto global para guardar la lista de alumnos
+        let listaAlumnosFirebase = [];
+        let isLoaded = false;
+
+        // Sincronizar los alumnos desde Firebase
+        function iniciarSincronizacionAlumnos() {
+            db.ref('alumnos').on('value', (snapshot) => {
+                // El .val() aquí es el array de DNI/nombres
+                listaAlumnosFirebase = snapshot.val() || []; 
+                isLoaded = true;
+                document.getElementById('loading-status').textContent = 'Listo para verificar.';
+                document.getElementById('loading-status').style.color = '#27ae60';
+                console.log(`Lista de ${listaAlumnosFirebase.length} alumnos cargada desde Firebase.`);
+            }, (error) => {
+                 document.getElementById('loading-status').textContent = 'Error al cargar datos. Recargue.';
+                 document.getElementById('loading-status').style.color = '#e74c3c';
+                 console.error("Error de Firebase:", error);
+            });
+        }
+        
+        function validarDNI() {
+            const dniInput = document.getElementById('dni-input');
+            const dniIngresado = dniInput.value.trim();
+            
+            if (!isLoaded) {
+                alert("La lista de alumnos aún se está cargando. Espere un momento e intente de nuevo.");
+                return;
+            }
+
+            if (dniIngresado.length < 7 || isNaN(dniIngresado)) {
+                alert("Por favor, ingrese un DNI válido (mínimo 7 dígitos).");
+                return;
+            }
+            
+            // Leyendo de Firebase:
+            const alumnoEncontrado = listaAlumnosFirebase.find(a => a.dni === dniIngresado);
+
+            if (alumnoEncontrado) {
+                // Guarda la sesión en localStorage 
+                localStorage.setItem('sesionDNI', dniIngresado);
+                localStorage.setItem('sesionNombre', alumnoEncontrado.nombre);
+                
+                alert(`¡Bienvenido, ${alumnoEncontrado.nombre}! Acceso autorizado.`);
+                
+                // ✅ CORRECCIÓN CLAVE: Redirige a index.html
+                window.location.href = 'index.html'; 
+            } else {
+                alert("DNI no encontrado o no autorizado. Verifique que haya sido cargado por el administrador.");
+            }
+        }
+
+        // Iniciar la sincronización al cargar la página
+        document.addEventListener('DOMContentLoaded', iniciarSincronizacionAlumnos);
+    </script>
+</body>
+</html>

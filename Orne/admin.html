@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Administración - Reservas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        /* --- Estilos Base --- */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        /* --- Estilos de Tablas y Botones --- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        th {
+            background-color: #34495e;
+            color: white;
+            cursor: pointer;
+        }
+        .btn-action {
+            padding: 5px 10px;
+            margin: 2px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+        .btn-confirmar {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .btn-cancelar {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .btn-comprobante {
+            background-color: #3498db;
+            color: white;
+        }
+        .btn-eliminar { 
+            background-color: #95a5a6;
+            color: white;
+        }
+        .btn-modificar {
+             background-color: #f39c12; /* Naranja para modificar */
+             color: white;
+        }
+        .btn-reset { /* Estilo para Reset */
+            background-color: #c0392b; 
+            color: white;
+            padding: 10px 20px;
+            margin: 20px 0;
+            font-size: 1.1em;
+            font-weight: bold;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            border: 2px solid #a93226;
+            transition: background-color 0.2s;
+        }
+        .btn-reset:hover {
+            background-color: #a93226;
+        }
+        /* --- Estilos de Login --- */
+        #login-form {
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            text-align: center;
+        }
+        #login-form input, #login-form button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        #login-form button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        /* --- ESTADÍSTICAS --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 15px 0;
+        }
+        .stat-box {
+            background-color: #ecf0f1;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            font-size: 0.9em;
+            font-weight: bold;
+            border-bottom: 3px solid transparent;
+        }
+        .stat-box span {
+            display: block;
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .stat-box.confirmed { border-color: #c0392b; color: #c0392b; }
+        .stat-box.pending { border-color: #f39c12; color: #f39c12; }
+        .stat-box.available { border-color: #2ecc71; color: #2ecc71; }
+        .stat-box.total { border-color: #34495e; color: #34495e; }
+        #confirmadas-list-reservas td:nth-child(5) {
+            min-width: 150px; 
+        }
+        /* Estilo para la carga masiva */
+        .batch-load-container {
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .batch-load-container textarea {
+            width: 100%;
+            height: 100px;
+            margin-bottom: 10px;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Panel de Administración de Reservas</h1>
+        
+        <div id="login-section">
+            <div id="login-form">
+                <h2>Acceso de Administrador</h2>
+                <input type="text" id="admin-dni" placeholder="Ingrese DNI de Administrador">
+                <button onclick="loginAdmin()">Acceder</button>
+            </div>
+        </div>
+
+        <div id="admin-panel" style="display:none;">
+            
+            <button class="btn-reset" onclick="resetTotalSistema()">🚨 Reiniciar Sistema (Reset Total de Datos)</button>
+            <hr>
+
+            <h2>Estadísticas de Butacas</h2>
+            <div class="stats-grid">
+                <div class="stat-box confirmed">Vendidas (Confirmadas): <span id="stat-confirmadas">0</span></div>
+                <div class="stat-box pending">Reservadas (Pendientes): <span id="stat-pendientes-mapa">0</span></div>
+                <div class="stat-box available">Disponibles (Por Vender): <span id="stat-disponibles">0</span></div>
+                <div class="stat-box total">Capacidad Total: <span id="stat-total">0</span></div>
+            </div>
+            
+            <hr>
+
+            <h2>Carga Masiva de Cupos de Actores (5 Entradas)</h2>
+            <div class="batch-load-container">
+                <p>Pegue la lista de **DNI y Apellido** (separados por comas o saltos de línea). A cada DNI se le asignará un cupo **CONFIRMADO de 5 entradas** para su familia.</p>
+                <p>Formato requerido: <strong>DNI de 8 cifras, Apellido</strong> (Ej: 10000000,Gomez o 10000001 Gomez)</p>
+                <textarea id="textarea-dnis-masivos" placeholder="Ej: 10000000,Gomez
+10000001,Perez
+10000002,Rodriguez"></textarea>
+                <button class="btn-action" style="background-color: #2c3e50; color: white; padding: 10px 15px; width: 100%;" onclick="cargarDnisActoresMasivo()">Cargar DNI con Cupo 5</button>
+            </div>
+            <hr style="margin-top: 30px;">
+            <h2>Pre-Reservas Pendientes (<span id="count-pendientes">0</span>)</h2>
+            <p>Solo se muestran las reservas pendientes y no expiradas.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Referencia</th>
+                        <th>Cliente</th>
+                        <th>DNI</th>
+                        <th>Butacas</th>
+                        <th>Cantidad</th>
+                        <th>Expiración</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="reservas-list">
+                    </tbody>
+            </table>
+
+            <hr style="margin-top: 30px;">
+            <h2>Reservas Confirmadas (Detalle)</h2>
+            <p>Listado de reservas que ya fueron confirmadas y pagadas.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Referencia</th>
+                        <th>Cliente</th>
+                        <th>DNI</th>
+                        <th>Butacas</th>
+                        <th>Cantidad</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="confirmadas-list-reservas">
+                    </tbody>
+            </table>
+            
+            <hr style="margin-top: 30px;">
+            <h2>Cupo Total por DNI</h2>
+            <table id="confirmadas-table">
+                <thead>
+                    <tr>
+                        <th>DNI</th>
+                        <th>Apellido (Familia)</th>
+                        <th>Entradas Confirmadas</th>
+                        <th>Acciones</th> </tr>
+                </thead>
+                <tbody id="confirmadas-list-cupo">
+                    </tbody>
+            </table>
+            <button class="btn-action" style="background-color: #34495e; color: white; margin-top: 15px;" onclick="logoutAdmin()">Cerrar Sesión</button>
+
+        </div>
+        
+    </div>
+
+    <script>
+        // --- FIREBASE V8 INICIALIZACIÓN ---
+        
+        // ⚠️ CONFIGURACIÓN DE FIREBASE (Debe ser idéntica a index.html)
+        const firebaseConfig = {
+          apiKey: "AIzaSyC_q9XUxb5e0X4wS4cB168Hh7-fG9Hmq",
+          authDomain: "ventaentradasorne.firebaseapp.com",
+          databaseURL: "https://ventaentradasorne-default-rtdb.firebaseio.com",
+          projectId: "ventaentradasorne",
+          storageBucket: "ventaentradasorne.appspot.com",
+          messagingSenderId: "10786673844635",
+          appId: "1:10786673844635:web:bd8a949271a5a7691e39e"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        
+        // --- CONSTANTES ---
+        // 🚨 CAMBIE ESTE VALOR por el DNI real de su administrador
+        const ADMIN_DNI = "99999999"; 
+        
+        // --- CONFIGURACIÓN DEL PLANO (COPIA DE index.html) ---
+        
+        const createCenterSplitBlock = (maxPair, maxOdd) => {
+            const leftBlock = [];
+            for (let i = maxPair; i >= 2; i -= 2) { leftBlock.push(i); }
+            const rightBlock = [];
+            for (let i = 1; i <= maxOdd; i += 2) { rightBlock.push(i); }
+            return [...leftBlock, ...rightBlock]; 
+        };
+        
+        const DISENO_AUDITORIO = {
+            'Fila 1': [...createCenterSplitBlock(18, 23), null], 
+            'Fila 2': [null, ...createCenterSplitBlock(24, 23), null], 
+            'Fila 3': [null, ...createCenterSplitBlock(24, 25), null],
+            'Fila 4': [null, ...createCenterSplitBlock(26, 27), null], 
+            'Fila 5': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 6': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 7': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 8': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 9': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 10': [null, ...createCenterSplitBlock(26, 25), null], 
+            'Fila 11': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null], 
+            'Fila 12': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null],
+            'Fila 13': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null],
+            'Fila 14': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null],
+            'Fila 15': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null],
+            'Fila 16': [24, 22, 20, 18, null, ...createCenterSplitBlock(16, 15), null, 17, 19, 21, 23], 
+            'Fila 17': [26, 24, 22, 20, 18, null, ...createCenterSplitBlock(12, 11), null, 13, 15, 17, 19, 21], 
+            'Fila 18': [22, 20, 18, 16, 14, null, ...createCenterSplitBlock(12, 11), null, 13, 15, 17, 19, 21],
+        };
+        
+        let TOTAL_CAPACIDAD = 0;
+        // Calcular capacidad total una vez
+        for (const fila in DISENO_AUDITORIO) {
+            DISENO_AUDITORIO[fila].forEach(item => {
+                if (item !== null) {
+                    TOTAL_CAPACIDAD++;
+                }
+            });
+        }
+        
+        // --- LÓGICA DE ACCESO (SINGLE STEP) ---
+
+        /** Maneja el acceso. Solo se ejecuta al hacer clic en el botón. */
+        function loginAdmin() {
+            const inputDNI = document.getElementById('admin-dni').value.trim();
+            if (inputDNI === ADMIN_DNI) {
+                // 1. Guardar la sesión para que no vuelva a pedir el DNI
+                localStorage.setItem('adminDNI', ADMIN_DNI); 
+                
+                // 2. Ocultar login y mostrar panel
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                
+                // 3. Iniciar la carga de datos
+                iniciarSincronizacionAdmin();
+            } else {
+                alert("DNI de administrador incorrecto.");
+            }
+        }
+        
+        /** Cierra la sesión de administrador */
+        function logoutAdmin() {
+            if (confirm("¿Estás seguro de que quieres cerrar la sesión?")) {
+                localStorage.removeItem('adminDNI');
+                window.location.reload(); 
+            }
+        }
+
+        /** Se ejecuta al cargar la página. Si ya tiene sesión, entra directamente. */
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('stat-total').textContent = TOTAL_CAPACIDAD;
+            
+            if (localStorage.getItem('adminDNI') === ADMIN_DNI) {
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+                iniciarSincronizacionAdmin();
+            } else {
+                // Asegurar que el panel está oculto si no hay sesión válida
+                document.getElementById('login-section').style.display = 'block';
+                document.getElementById('admin-panel').style.display = 'none';
+            }
+        });
+
+        // --- FUNCIONES PRINCIPALES ---
+
+        /** Inicia los listeners de Firebase para obtener datos en tiempo real */
+        function iniciarSincronizacionAdmin() {
+            
+            // 1. Sincronizar Asientos para las estadísticas
+            db.ref('asientos').on('value', (snapshot) => {
+                const asientos = snapshot.val() || [];
+                calcularEstadisticas(asientos);
+            });
+            
+            // 2. Sincronizar PreReservas (pendientes y confirmadas)
+            db.ref('preReservas').on('value', (snapshot) => {
+                const reservasObject = snapshot.val() || {};
+                const reservas = Object.keys(reservasObject).map(key => ({
+                    ...reservasObject[key],
+                    firebaseKey: key 
+                }));
+                renderReservas(reservas);
+            });
+            
+            // 3. Sincronizar Cupo Confirmado
+            db.ref('reservasConfirmadas').on('value', (snapshot) => {
+                const confirmadasObject = snapshot.val() || {}; 
+                // Convertir objeto a array, incluyendo la clave de Firebase
+                const confirmadas = Object.keys(confirmadasObject).map(key => ({
+                    ...confirmadasObject[key],
+                    firebaseKey: key // <-- Clave necesaria para modificar/eliminar
+                }));
+                renderReservasConfirmadasCupo(confirmadas);
+            });
+        }
+        
+        // --- LÓGICA DE ESTADÍSTICAS ---
+        
+        function calcularEstadisticas(asientos) {
+            let confirmadas = 0;
+            let pendientes = 0;
+            
+            asientos.forEach(asientoID => {
+                if (asientoID.endsWith('-CONFIRMADO')) {
+                    confirmadas++;
+                } else if (asientoID.endsWith('-PENDIENTE')) {
+                    pendientes++;
+                }
+            });
+            
+            const disponibles = TOTAL_CAPACIDAD - confirmadas - pendientes;
+            
+            document.getElementById('stat-confirmadas').textContent = confirmadas;
+            document.getElementById('stat-pendientes-mapa').textContent = pendientes;
+            document.getElementById('stat-disponibles').textContent = disponibles;
+        }
+
+        // --- LÓGICA DE RENDERIZADO ---
+
+        /** Renderiza la tabla de Pre-Reservas (PENDIENTES y CONFIRMADAS) */
+        function renderReservas(reservas) {
+            const listBodyPendientes = document.getElementById('reservas-list');
+            const listBodyConfirmadas = document.getElementById('confirmadas-list-reservas');
+            listBodyPendientes.innerHTML = '';
+            listBodyConfirmadas.innerHTML = '';
+            
+            const reservasPendientes = reservas.filter(r => 
+                r.estado === 'PENDIENTE' && r.expiracion > Date.now()
+            ).sort((a, b) => a.timestamp - b.timestamp);
+            
+            const reservasConfirmadas = reservas.filter(r => 
+                r.estado === 'CONFIRMADO'
+            ).sort((a, b) => a.timestamp - b.timestamp);
+
+            document.getElementById('count-pendientes').textContent = reservasPendientes.length;
+
+            // RENDERIZAR PENDIENTES
+            reservasPendientes.forEach((reserva) => {
+                const row = listBodyPendientes.insertRow();
+                const key = reserva.firebaseKey; 
+
+                row.insertCell().textContent = reserva.referencia;
+                row.insertCell().textContent = reserva.nombre;
+                row.insertCell().textContent = reserva.dni;
+                row.insertCell().textContent = (reserva.butacas_visuales || []).join(', ');
+                row.insertCell().textContent = reserva.cantidad;
+                row.insertCell().textContent = new Date(reserva.expiracion).toLocaleString();
+                
+                const actionsCell = row.insertCell();
+                actionsCell.innerHTML = `
+                    <button class="btn-action btn-confirmar" onclick="confirmarReserva('${key}')">Confirmar</button>
+                    <button class="btn-action btn-cancelar" onclick="cancelarReserva('${key}')">Cancelar</button>
+                `;
+            });
+
+            // RENDERIZAR CONFIRMADAS
+            reservasConfirmadas.forEach((reserva) => {
+                const row = listBodyConfirmadas.insertRow();
+                const key = reserva.firebaseKey; 
+
+                row.insertCell().textContent = reserva.referencia;
+                row.insertCell().textContent = reserva.nombre;
+                row.insertCell().textContent = reserva.dni;
+                row.insertCell().textContent = (reserva.butacas_visuales || []).join(', ');
+                row.insertCell().textContent = reserva.cantidad;
+                
+                const actionsCell = row.insertCell();
+                actionsCell.innerHTML = `
+                    <button class="btn-action btn-comprobante" onclick="generarComprobante('${key}')">Ver Comprobante</button>
+                    <button class="btn-action btn-eliminar" onclick="eliminarReservaConfirmada('${key}')">Eliminar Reserva</button>
+                `;
+            });
+        }
+
+        /** 🟢 Renderiza la tabla de Cupo Confirmado con botones de acción */
+        function renderReservasConfirmadasCupo(confirmadas) {
+            const listBody = document.getElementById('confirmadas-list-cupo');
+            listBody.innerHTML = '';
+
+            confirmadas.sort((a, b) => a.dni - b.dni).forEach(c => {
+                const row = listBody.insertRow();
+                
+                row.insertCell().textContent = c.dni;
+                row.insertCell().textContent = c.apellido || 'N/A'; 
+                row.insertCell().textContent = c.entradas;
+                
+                const actionsCell = row.insertCell();
+                actionsCell.innerHTML = `
+                    <button class="btn-action btn-modificar" onclick="modificarCupoDNI('${c.firebaseKey}', '${c.dni}', '${c.apellido || ''}', ${c.entradas})">Modificar</button>
+                    <button class="btn-action btn-cancelar" onclick="eliminarCupoDNI('${c.firebaseKey}')">Eliminar</button>
+                `;
+            });
+        }
+
+
+        // --- LÓGICA DE ACCIONES (Confirmar/Cancelar/ELIMINAR/RESET) ---
+        
+        async function confirmarReserva(firebaseKey) {
+            if (!confirm(`¿Estás seguro de CONFIRMAR la reserva con clave ${firebaseKey}? Esto la marcará como vendida.`)) return;
+
+            try {
+                // 1. Obtener los datos de la reserva específica usando la clave
+                const reservaSnapshot = await db.ref(`preReservas/${firebaseKey}`).once('value');
+                const reserva = reservaSnapshot.val();
+                
+                if (!reserva || reserva.estado !== 'PENDIENTE' || !reserva.butacas_internal_ids) {
+                    alert('Reserva no encontrada, expirada o no tiene IDs de butacas válidos.');
+                    return;
+                }
+
+                const updates = {};
+                
+                // 2. Actualizar el cupo confirmado del usuario (reservasConfirmadas)
+                const confirmadasSnapshot = await db.ref('reservasConfirmadas').once('value');
+                let confirmadasObj = confirmadasSnapshot.val() || {}; 
+                // Buscamos la clave de Firebase si existe un registro con ese DNI
+                let keyToUpdate = null;
+                let currentCupo = 0;
+                
+                for (const key in confirmadasObj) {
+                    if (confirmadasObj[key].dni === reserva.dni) {
+                        keyToUpdate = key;
+                        currentCupo = confirmadasObj[key].entradas;
+                        break;
+                    }
+                }
+                
+                const newCupo = currentCupo + reserva.cantidad;
+                const newApellido = reserva.nombre || confirmadasObj[keyToUpdate]?.apellido || 'Invitada';
+
+
+                if (keyToUpdate) {
+                    // Actualizar registro existente
+                    updates[`reservasConfirmadas/${keyToUpdate}`] = {
+                        dni: reserva.dni,
+                        apellido: newApellido,
+                        entradas: newCupo
+                    };
+                } else {
+                    // Crear nuevo registro
+                    const newKey = db.ref('reservasConfirmadas').push().key;
+                     updates[`reservasConfirmadas/${newKey}`] = { 
+                        dni: reserva.dni, 
+                        apellido: newApellido, 
+                        entradas: reserva.cantidad 
+                    };
+                }
+
+
+                // 3. Actualizar el estado de las butacas en la lista de asientos (PENDIENTE -> CONFIRMADO)
+                const asientosSnapshot = await db.ref('asientos').once('value');
+                let asientos = asientosSnapshot.val() || [];
+
+                reserva.butacas_internal_ids.forEach(id => {
+                    const pendienteID = `${id}-PENDIENTE`;
+                    const confirmadoID = `${id}-CONFIRMADO`;
+
+                    // Remover el ID pendiente
+                    const indexPendiente = asientos.indexOf(pendienteID);
+                    if (indexPendiente > -1) {
+                        asientos.splice(indexPendiente, 1);
+                    }
+                    // Insertar el ID confirmado (doble chequeo para que no se duplique)
+                    if (asientos.indexOf(confirmadoID) === -1) {
+                        asientos.push(confirmadoID);
+                    }
+                });
+                
+                // 4. Actualizar estado de la reserva preReservas
+                updates[`preReservas/${firebaseKey}/estado`] = 'CONFIRMADO';
+                
+                // 5. Consolidar la actualización de asientos y estado
+                updates['asientos'] = asientos;
+
+                await db.ref('/').update(updates);
+                alert('Reserva confirmada y entradas marcadas como vendidas (CONFIRMADO).');
+
+            } catch (error) {
+                console.error("Error al confirmar reserva:", error);
+                alert('Error al confirmar la reserva. Revise la consola.');
+            }
+        }
+
+        async function cancelarReserva(firebaseKey) {
+            if (!confirm(`¿Estás seguro de CANCELAR la reserva con clave ${firebaseKey}? Esto liberará los asientos.`)) return;
+
+            try {
+                // 1. Obtener la reserva para los IDs de butaca
+                const reservaSnapshot = await db.ref(`preReservas/${firebaseKey}`).once('value');
+                const reserva = reservaSnapshot.val();
+
+                if (!reserva || reserva.estado !== 'PENDIENTE' || !reserva.butacas_internal_ids) {
+                    alert('Reserva no encontrada, expirada o ya no está pendiente.');
+                    return;
+                }
+
+                const updates = {};
+
+                // 2. Quitar butacas de la lista de asientos
+                const asientosSnapshot = await db.ref('asientos').once('value');
+                let asientos = asientosSnapshot.val() || [];
+
+                reserva.butacas_internal_ids.forEach(id => {
+                    const pendienteID = `${id}-PENDIENTE`;
+                    const indexPendiente = asientos.indexOf(pendienteID);
+                    if (indexPendiente > -1) {
+                        asientos.splice(indexPendiente, 1);
+                    }
+                });
+                updates['asientos'] = asientos;
+                
+                // 3. Eliminar la preReserva
+                updates[`preReservas/${firebaseKey}`] = null;
+                
+                await db.ref('/').update(updates);
+                alert('Reserva cancelada y asientos liberados.');
+
+            } catch (error) {
+                console.error("Error al cancelar reserva:", error);
+                alert('Error al cancelar la reserva. Revise la consola.');
+            }
+        }
+        
+        /** 🟢 FUNCIÓN CORREGIDA DEFINITIVA: Resta el cupo Y libera los asientos CONFIRMADOS */
+        async function eliminarReservaConfirmada(firebaseKey) {
+             if (!confirm(`⚠️ ¿Estás seguro de ELIMINAR la RESERVA CONFIRMADA con clave ${firebaseKey}? Esto RESTARÁ EL CUPO y también LIBERARÁ los asientos marcados como VENDIDOS.`)) return;
+
+             try {
+                // 1. Obtener los datos de la reserva específica
+                const reservaSnapshot = await db.ref(`preReservas/${firebaseKey}`).once('value');
+                const reserva = reservaSnapshot.val();
+
+                if (!reserva || reserva.estado !== 'CONFIRMADO') {
+                    alert('Reserva no encontrada o no está confirmada.');
+                    return;
+                }
+                
+                // 2. Buscar y Restar el cupo del DNI en 'reservasConfirmadas'
+                const confirmadasRef = db.ref('reservasConfirmadas');
+                const confirmadasSnapshot = await confirmadasRef.orderByChild('dni').equalTo(reserva.dni).once('value');
+                const confirmadasObj = confirmadasSnapshot.val();
+                
+                if (confirmadasObj) {
+                    const cupoKey = Object.keys(confirmadasObj)[0];
+                    const cupoData = confirmadasObj[cupoKey];
+                    const currentCupo = cupoData.entradas;
+                    const newCupo = currentCupo - reserva.cantidad;
+                    
+                    // Aplicar la actualización del cupo 
+                    if (newCupo > 0) {
+                         await db.ref(`reservasConfirmadas/${cupoKey}/entradas`).set(newCupo);
+                    } else {
+                         // Si el cupo llega a 0 o menos, lo establecemos en 0
+                         await db.ref(`reservasConfirmadas/${cupoKey}/entradas`).set(0); 
+                    }
+                }
+                
+                // 3. **LIBERAR BUTACAS DE LA LISTA GLOBAL /ASIENTOS**
+                const asientosSnapshot = await db.ref('asientos').once('value');
+                let asientos = asientosSnapshot.val() || [];
+                
+                if (reserva.butacas_internal_ids && reserva.butacas_internal_ids.length > 0) {
+                    reserva.butacas_internal_ids.forEach(id => {
+                        const confirmadoID = `${id}-CONFIRMADO`;
+                        const indexConfirmado = asientos.indexOf(confirmadoID);
+                        if (indexConfirmado > -1) {
+                            asientos.splice(indexConfirmado, 1); // Remover el asiento confirmado
+                        }
+                    });
+                    
+                    // Actualizar la lista global de asientos con las butacas liberadas
+                    await db.ref('asientos').set(asientos);
+                }
+                
+                // 4. Eliminar la preReserva de la lista de detalles
+                await db.ref(`preReservas/${firebaseKey}`).remove();
+                
+                alert('✅ Reserva confirmada eliminada, cupo restado y **asientos liberados**.');
+
+            } catch (error) {
+                console.error("Error al eliminar reserva confirmada:", error);
+                alert('Error al eliminar la reserva confirmada. Revise la consola.');
+            }
+        }
+
+        async function resetTotalSistema() {
+            if (!confirm("⚠️ ADVERTENCIA CRÍTICA: ¿Estás ABSOLUTAMENTE seguro de RESETEAR el sistema completo? Esto eliminará: asientos, preReservas y reservasConfirmadas. ¡Esta acción es irreversible!")) return;
+
+            try {
+                const updates = {
+                    'asientos': [],
+                    'preReservas': null,
+                    'reservasConfirmadas': null // Eliminamos todo el cupo de actores
+                };
+
+                await db.ref('/').update(updates);
+                alert('✅ Sistema reseteado completamente. Para reanudar el sistema, **vuelve a cargar el cupo masivo**.');
+            } catch (error) {
+                console.error("Error al resetear:", error);
+                alert('Error al resetear el sistema. Revise la consola.');
+            }
+        }
+        
+        // --- LÓGICA DE MODIFICAR/ELIMINAR CUPO DNI ---
+
+        /** 🟢 Elimina un registro de cupo por DNI */
+        async function eliminarCupoDNI(firebaseKey) {
+            if (!confirm("¿Estás seguro de ELIMINAR este registro de cupo? Esto no liberará butacas vendidas, solo la asignación de entradas a este DNI.")) return;
+            
+            try {
+                await db.ref(`reservasConfirmadas/${firebaseKey}`).remove();
+                alert('Registro de cupo eliminado correctamente.');
+            } catch (error) {
+                console.error("Error al eliminar cupo:", error);
+                alert('Error al eliminar el cupo.');
+            }
+        }
+
+        /** 🟢 Modifica un registro de cupo por DNI */
+        async function modificarCupoDNI(firebaseKey, dniActual, apellidoActual, entradasActuales) {
+            const nuevoDNI = prompt(`Modificar DNI para ${apellidoActual} (Actual: ${dniActual}):`, dniActual);
+            if (nuevoDNI === null) return;
+            if (!/^\d{7,10}$/.test(nuevoDNI.trim())) {
+                 alert('DNI no válido. Debe contener solo números.');
+                 return;
+            }
+
+            const nuevoApellido = prompt(`Modificar Apellido para ${dniActual} (Actual: ${apellidoActual}):`, apellidoActual);
+            if (nuevoApellido === null) return;
+
+            const nuevasEntradas = prompt(`Modificar Cantidad de Entradas para ${apellidoActual} (Actual: ${entradasActuales}):`, entradasActuales);
+            if (nuevasEntradas === null) return;
+            const entradasNum = parseInt(nuevasEntradas);
+            if (isNaN(entradasNum) || entradasNum < 0) {
+                 alert('Cantidad de entradas no válida. Debe ser un número positivo.');
+                 return;
+            }
+            
+            if (nuevoDNI.trim() === dniActual && nuevoApellido.trim() === apellidoActual && entradasNum === entradasActuales) {
+                alert('No se detectaron cambios.');
+                return;
+            }
+
+            try {
+                const updateData = {
+                    dni: nuevoDNI.trim(),
+                    apellido: nuevoApellido.trim(),
+                    entradas: entradasNum
+                };
+                
+                await db.ref(`reservasConfirmadas/${firebaseKey}`).update(updateData);
+                alert(`Cupo para DNI ${dniActual} modificado a: DNI ${nuevoDNI.trim()}, Familia ${nuevoApellido.trim()}, ${entradasNum} entradas.`);
+
+            } catch (error) {
+                console.error("Error al modificar cupo:", error);
+                alert('Error al modificar el cupo.');
+            }
+        }
+        
+        // --- LÓGICA DE CARGA MASIVA ---
+        
+        async function cargarDnisActoresMasivo() {
+            const textArea = document.getElementById('textarea-dnis-masivos');
+            const lines = textArea.value.trim().split('\n').filter(line => line.trim() !== '');
+            const updates = {};
+            const CUPOS_FIJOS = 5;
+
+            if (lines.length === 0) {
+                alert('Pegue la lista de DNI y Apellido en el área de texto.');
+                return;
+            }
+
+            if (!confirm(`Se intentarán cargar ${lines.length} registros con cupo de ${CUPOS_FIJOS} entradas. ¿Desea continuar? Los registros existentes se SOBREESCRIBIRÁN.`)) return;
+
+            try {
+                 // 1. Obtener la lista actual para poder buscar por DNI
+                const confirmadasSnapshot = await db.ref('reservasConfirmadas').once('value');
+                const confirmadasObj = confirmadasSnapshot.val() || {};
+                const dniToKeyMap = {};
+                for (const key in confirmadasObj) {
+                    dniToKeyMap[confirmadasObj[key].dni] = key;
+                }
+                
+                lines.forEach(line => {
+                    let [dni, apellido] = line.split(',').map(s => s.trim());
+                    
+                    if (!dni) return; // Línea vacía
+
+                    // Limpieza y validación básica
+                    dni = dni.replace(/\D/g, ''); // Quitar no-dígitos del DNI
+                    
+                    // Si el DNI tiene apellido como "10000000 Gomez", el split por coma da solo el DNI.
+                    if (apellido === undefined || apellido === "") { 
+                        // Intenta separar el apellido si no hay coma
+                        const parts = line.trim().split(/\s+/); 
+                        if (parts.length > 1) {
+                            dni = parts[0].trim().replace(/\D/g, '');
+                            apellido = parts.slice(1).join(' ').trim();
+                        } else {
+                            apellido = 'Invitada';
+                        }
+                    }
+
+                    if (dni.length >= 7 && dni.length <= 10) {
+                        const existingKey = dniToKeyMap[dni];
+                        
+                        // Si existe, usamos su clave; si no, generamos una nueva
+                        const key = existingKey || db.ref('reservasConfirmadas').push().key; 
+
+                        updates[`reservasConfirmadas/${key}`] = {
+                            dni: dni,
+                            apellido: apellido,
+                            entradas: CUPOS_FIJOS // Siempre 5 para la carga masiva
+                        };
+                    } else {
+                        console.warn(`DNI inválido ignorado: ${line}`);
+                    }
+                });
+
+                if (Object.keys(updates).length > 0) {
+                    await db.ref('/').update(updates);
+                    alert(`✅ Carga masiva completada: ${Object.keys(updates).length} registros actualizados/creados. Esto **SOBREESCRIBE** los apellidos que haya tenido anteriormente.`);
+                    textArea.value = ''; // Limpiar textarea
+                } else {
+                    alert('No se encontraron DNIs válidos para cargar.');
+                }
+
+            } catch (error) {
+                console.error("Error en la carga masiva:", error);
+                alert('Error en la carga masiva. Revise la consola.');
+            }
+        }
+        
+        // --- COMPROBANTE (Corregido para IMPRESIÓN/GUARDADO) ---
+        
+        async function generarComprobante(firebaseKey) {
+            try {
+                const reservaSnapshot = await db.ref(`preReservas/${firebaseKey}`).once('value');
+                const reserva = reservaSnapshot.val();
+
+                if (!reserva) {
+                    alert('Reserva no encontrada.');
+                    return;
+                }
+
+                const fechaReserva = new Date(reserva.timestamp).toLocaleString();
+                const butacas = (reserva.butacas_visuales || []).join(', ');
+
+                // 🟢 HTML para la nueva ventana de impresión
+                const comprobanteHTML = `
+                    <html>
+                    <head>
+                        <title>Comprobante de Venta - ${reserva.referencia}</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
+                            .header { text-align: center; margin-bottom: 20px; }
+                            .details { border: 1px solid #ccc; padding: 15px; border-radius: 5px; }
+                            .details p { margin: 5px 0; font-size: 1.1em; }
+                            .details strong { display: inline-block; width: 150px; }
+                            .footer { margin-top: 30px; text-align: center; font-size: 0.9em; color: #777; }
+                            @media print {
+                                button { display: none; }
+                                .details { border: none; padding: 0; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <h2>COMPROBANTE DE VENTA</h2>
+                            <h1>${reserva.referencia}</h1>
+                        </div>
+                        
+                        <div class="details">
+                            <p><strong>ESTADO:</strong> ${reserva.estado}</p>
+                            <p><strong>CLIENTE:</strong> Familia ${reserva.nombre}</p>
+                            <p><strong>DNI:</strong> ${reserva.dni}</p>
+                            <p><strong>CANTIDAD:</strong> ${reserva.cantidad} entradas</p>
+                            <p><strong>BUTACAS:</strong> ${butacas}</p>
+                            <p><strong>FECHA VENTA:</strong> ${fechaReserva}</p>
+                        </div>
+                        
+                        <div class="footer">
+                            Este comprobante confirma la reserva o el pago.
+                        </div>
+                        <button onclick="window.print()" style="padding: 10px 20px; margin-top: 20px; cursor: pointer;">Imprimir o Guardar como PDF</button>
+                    </body>
+                    </html>
+                `;
+
+                // Abrir la ventana y escribir el contenido
+                const printWindow = window.open('', 'PrintComprobante', 'height=600,width=800');
+                printWindow.document.write(comprobanteHTML);
+                printWindow.document.close();
+                
+                // Forzar la impresión si lo deseas:
+                // printWindow.onload = () => { printWindow.print(); };
+
+            } catch (error) {
+                console.error("Error al generar comprobante:", error);
+                alert('Error al generar el comprobante. Revise la consola.');
+            }
+        }
+    </script>
+</body>
+</html>
