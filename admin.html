@@ -63,7 +63,7 @@
         }
         .btn-delete:hover { background-color: #c0392b; }
         
-        /* 🛑 Nuevo estilo para el botón de Ver Entrada */
+        /* Estilo para el botón de Ver Entrada (Azul) */
         .btn-view {
             background-color: #3498db;
             margin-right: 5px;
@@ -214,6 +214,7 @@
 
     <script>
         // --- FIREBASE V8 INICIALIZACIÓN ---
+        // *** REVISA ESTA CONFIGURACIÓN SI ESTÁS TENIENDO PROBLEMAS DE CONEXIÓN ***
         const firebaseConfig = {
           apiKey: "AIzaSyC_q9XUxb5e0X4wS4cB168Hh7-fG9Hmq",
           authDomain: "ventaentradasorne.firebaseapp.com",
@@ -227,7 +228,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- CONFIGURACIÓN DEL PLANO (COPIA DE index.html) ---
+        // --- CONFIGURACIÓN DEL PLANO (DEBE COINCIDIR CON index.html) ---
         const createCenterSplitBlock = (maxPair, maxOdd) => {
             const leftBlock = [];
             for (let i = maxPair; i >= 2; i -= 2) { leftBlock.push(i); }
@@ -408,7 +409,7 @@
             }
         }
         
-        /** 🛑 NUEVA FUNCIÓN: Visualiza la entrada en una ventana pop-up para guardar/imprimir */
+        /** NUEVA FUNCIÓN: Visualiza la entrada en una ventana pop-up para guardar/imprimir */
         async function visualizarEntrada(reservaKey) {
             try {
                 const snapshot = await db.ref(`preReservas/${reservaKey}`).once('value');
@@ -524,6 +525,7 @@
         // --- RENDERIZADO DE DATOS ---
 
         document.addEventListener('DOMContentLoaded', () => {
+            // Escuchadores de Firebase para actualizar las tablas y el mapa en tiempo real
             db.ref('preReservas').on('value', (snapshot) => {
                 const reservas = snapshot.val() || {};
                 renderReservas(reservas); 
@@ -559,6 +561,7 @@
                 
                 let accionesHTML;
                 if (reserva.estado === 'PENDIENTE') {
+                    // BOTONES PARA RESERVAS PENDIENTES
                     accionesHTML = `
                         <button class="btn-confirm" onclick="confirmarReserva('${key}', '${butacasInternal}')">Confirmar</button>
                         <button class="btn-delete" onclick="eliminarReserva('${key}', '${butacasInternal}')">Cancelar</button>
@@ -567,6 +570,7 @@
                         accionesHTML = `<span style="color: red; font-weight: bold;">EXPIRADA</span> ` + accionesHTML;
                     }
                 } else { // CONFIRMADO
+                    // BOTONES PARA RESERVAS CONFIRMADAS
                     accionesHTML = `
                         <button class="btn-confirm btn-view" onclick="visualizarEntrada('${key}')">Ver Entrada</button>
                         <button class="btn-delete" onclick="eliminarReserva('${key}', '${butacasInternal}')" title="Elimina la venta y libera asientos">Liberar</button>
