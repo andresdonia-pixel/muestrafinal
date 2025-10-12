@@ -419,7 +419,11 @@
                     return;
                 }
 
-                const butacasList = reserva.butacas_visuales.join(', ');
+                // Asegurar que costo_total tenga un valor o sea 0 para toLocaleString
+                const costoTotal = reserva.costo_total !== undefined && reserva.costo_total !== null 
+                                 ? reserva.costo_total : 0;
+
+                const butacasList = reserva.butacas_visuales ? reserva.butacas_visuales.join(', ') : 'N/A';
                 const date = new Date(reserva.timestamp).toLocaleDateString('es-AR');
                 const time = new Date(reserva.timestamp).toLocaleTimeString('es-AR');
                 
@@ -485,7 +489,7 @@
                                 <p><strong>Familia:</strong> ${reserva.nombre}</p>
                                 <p><strong>DNI:</strong> ${reserva.dni}</p>
                                 <p><strong>Cantidad:</strong> ${reserva.cantidad} Butaca(s)</p>
-                                <p><strong>Total Pagado:</strong> $${reserva.costo_total ? reserva.costo_total.toLocaleString('es-AR') : 'N/A'}</p>
+                                <p><strong>Total Pagado:</strong> $${costoTotal.toLocaleString('es-AR')}</p>
                                 <p><strong>Referencia:</strong> ${reserva.referencia}</p>
                                 <p><strong>Fecha Venta:</strong> ${date} ${time}</p>
                             </div>
@@ -568,6 +572,9 @@
                         <button class="btn-delete" onclick="eliminarReserva('${key}', '${butacasInternal}')" title="Elimina la venta y libera asientos">Liberar</button>
                     `;
                 }
+
+                const costoTotalDisplay = reserva.costo_total !== undefined && reserva.costo_total !== null
+                                        ? `$${reserva.costo_total.toLocaleString('es-AR')}` : 'N/A';
                 
                 const row = tbody.insertRow();
                 row.innerHTML = `
@@ -577,7 +584,7 @@
                     <td>${reserva.email || 'N/A'}</td>
                     <td>${reserva.cantidad}</td>
                     <td>${butacasVisual}</td>
-                    <td>$${reserva.costo_total ? reserva.costo_total.toLocaleString('es-AR') : 'N/A'}</td>
+                    <td>${costoTotalDisplay}</td>
                     <td class="${estadoClass}">${reserva.estado}</td>
                     <td>${expirationDate}</td>
                     <td>${accionesHTML}</td>
