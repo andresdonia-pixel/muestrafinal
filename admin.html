@@ -215,6 +215,7 @@
     <script>
         // --- FIREBASE V8 INICIALIZACIÓN ---
         // *** REVISA ESTA CONFIGURACIÓN SI ESTÁS TENIENDO PROBLEMAS DE CONEXIÓN ***
+        // Esta configuración es la de tu proyecto "VentaEntradasOrne"
         const firebaseConfig = {
           apiKey: "AIzaSyC_q9XUxb5e0X4wS4cB168Hh7-fG9Hmq",
           authDomain: "ventaentradasorne.firebaseapp.com",
@@ -421,8 +422,13 @@
                 }
 
                 // Asegurar que costo_total tenga un valor o sea 0 para toLocaleString
+                // Nota: Tu código de index.html no guarda costo_total, pero si lo añades en el futuro, funcionará.
+                // Usaremos 0 por ahora si no existe, o si está en un campo llamado 'costo_total' si lo añades.
                 const costoTotal = reserva.costo_total !== undefined && reserva.costo_total !== null 
                                  ? reserva.costo_total : 0;
+                
+                // Si la reserva viene de una versión anterior que no tenía la referencia (REF), la generamos.
+                const referenciaDisplay = reserva.referencia || reservaKey;
 
                 const butacasList = reserva.butacas_visuales ? reserva.butacas_visuales.join(', ') : 'N/A';
                 const date = new Date(reserva.timestamp).toLocaleDateString('es-AR');
@@ -491,7 +497,7 @@
                                 <p><strong>DNI:</strong> ${reserva.dni}</p>
                                 <p><strong>Cantidad:</strong> ${reserva.cantidad} Butaca(s)</p>
                                 <p><strong>Total Pagado:</strong> $${costoTotal.toLocaleString('es-AR')}</p>
-                                <p><strong>Referencia:</strong> ${reserva.referencia}</p>
+                                <p><strong>Referencia:</strong> ${referenciaDisplay}</p>
                                 <p><strong>Fecha Venta:</strong> ${date} ${time}</p>
                             </div>
 
@@ -556,7 +562,8 @@
                 
                 const isExpired = reserva.estado === 'PENDIENTE' && reserva.expiracion < now;
                 
-                const expirationDate = reserva.expiracion ? new Date(reserva.expiracion).toLocaleTimeString('es-AR') : 'N/A';
+                // Formatear la expiración solo la hora/minuto
+                const expirationDate = reserva.expiracion ? new Date(reserva.expiracion).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
                 const estadoClass = `status-${reserva.estado.toLowerCase()}`;
                 
                 let accionesHTML;
@@ -567,23 +574,27 @@
                         <button class="btn-delete" onclick="eliminarReserva('${key}', '${butacasInternal}')">Cancelar</button>
                     `;
                     if (isExpired) {
+                        // Resaltar si está expirada
                         accionesHTML = `<span style="color: red; font-weight: bold;">EXPIRADA</span> ` + accionesHTML;
                     }
                 } else { // CONFIRMADO
-                    // BOTONES PARA RESERVAS CONFIRMADAS - AQUI ESTÁ EL BOTÓN 'Ver Entrada'
+                    // BOTONES PARA RESERVAS CONFIRMADAS - AQUÍ ESTÁ EL BOTÓN 'Ver Entrada'
                     accionesHTML = `
                         <button class="btn-confirm btn-view" onclick="visualizarEntrada('${key}')">Ver Entrada</button>
                         <button class="btn-delete" onclick="eliminarReserva('${key}', '${butacasInternal}')" title="Elimina la venta y libera asientos">Liberar</button>
                     `;
                 }
 
-                // Corrección para mostrar el costo total correctamente (el error de tu tabla previa)
+                // Mostrar el costo total correctamente (si se lo añades en index.html, aquí aparecerá)
                 const costoTotalDisplay = reserva.costo_total !== undefined && reserva.costo_total !== null
                                         ? `$${reserva.costo_total.toLocaleString('es-AR')}` : 'N/A';
                 
+                // Generar una referencia corta para la tabla
+                const refDisplay = reserva.referencia ? reserva.referencia.substring(4) : key;
+                
                 const row = tbody.insertRow();
                 row.innerHTML = `
-                    <td>${reserva.referencia ? reserva.referencia.substring(4) : key}</td>
+                    <td>${refDisplay}</td>
                     <td>${reserva.dni}</td>
                     <td>${reserva.nombre}</td>
                     <td>${reserva.email || 'N/A'}</td>
