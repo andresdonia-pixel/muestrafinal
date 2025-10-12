@@ -570,13 +570,14 @@
                         accionesHTML = `<span style="color: red; font-weight: bold;">EXPIRADA</span> ` + accionesHTML;
                     }
                 } else { // CONFIRMADO
-                    // BOTONES PARA RESERVAS CONFIRMADAS
+                    // BOTONES PARA RESERVAS CONFIRMADAS - AQUI ESTÁ EL BOTÓN 'Ver Entrada'
                     accionesHTML = `
                         <button class="btn-confirm btn-view" onclick="visualizarEntrada('${key}')">Ver Entrada</button>
                         <button class="btn-delete" onclick="eliminarReserva('${key}', '${butacasInternal}')" title="Elimina la venta y libera asientos">Liberar</button>
                     `;
                 }
 
+                // Corrección para mostrar el costo total correctamente (el error de tu tabla previa)
                 const costoTotalDisplay = reserva.costo_total !== undefined && reserva.costo_total !== null
                                         ? `$${reserva.costo_total.toLocaleString('es-AR')}` : 'N/A';
                 
