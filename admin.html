@@ -67,6 +67,9 @@
         .btn-view {
             background-color: #3498db;
             margin-right: 5px;
+            /* Estilo más pequeño para que quepa junto a otros botones */
+            padding: 6px 6px; 
+            font-size: 0.7em;
         }
         .btn-view:hover { background-color: #2980b9; }
 
@@ -215,7 +218,6 @@
     <script>
         // --- FIREBASE V8 INICIALIZACIÓN ---
         // *** REVISA ESTA CONFIGURACIÓN SI ESTÁS TENIENDO PROBLEMAS DE CONEXIÓN ***
-        // Esta configuración es la de tu proyecto "VentaEntradasOrne"
         const firebaseConfig = {
           apiKey: "AIzaSyC_q9XUxb5e0X4wS4cB168Hh7-fG9Hmq",
           authDomain: "ventaentradasorne.firebaseapp.com",
@@ -410,50 +412,57 @@
             }
         }
         
-        /** NUEVA FUNCIÓN: Visualiza la entrada en una ventana pop-up para guardar/imprimir */
+        /** Modificada: Visualiza la entrada y advierte si no está confirmada */
         async function visualizarEntrada(reservaKey) {
             try {
                 const snapshot = await db.ref(`preReservas/${reservaKey}`).once('value');
                 const reserva = snapshot.val();
 
-                if (!reserva || reserva.estado !== 'CONFIRMADO') {
-                    alert("No se encontró una reserva CONFIRMADA con esa referencia.");
+                if (!reserva) {
+                    alert("No se encontró una reserva con esa referencia.");
                     return;
+                }
+                
+                const isConfirmed = reserva.estado === 'CONFIRMADO';
+                
+                if (!isConfirmed) {
+                    alert(`⚠️ ADVERTENCIA: La entrada para la referencia ${reserva.referencia || reservaKey} no está CONFIRMADA. Se muestra solo como comprobante de reserva PENDIENTE.`);
                 }
 
                 // Asegurar que costo_total tenga un valor o sea 0 para toLocaleString
-                // Nota: Tu código de index.html no guarda costo_total, pero si lo añades en el futuro, funcionará.
-                // Usaremos 0 por ahora si no existe, o si está en un campo llamado 'costo_total' si lo añades.
                 const costoTotal = reserva.costo_total !== undefined && reserva.costo_total !== null 
                                  ? reserva.costo_total : 0;
                 
-                // Si la reserva viene de una versión anterior que no tenía la referencia (REF), la generamos.
                 const referenciaDisplay = reserva.referencia || reservaKey;
-
                 const butacasList = reserva.butacas_visuales ? reserva.butacas_visuales.join(', ') : 'N/A';
                 const date = new Date(reserva.timestamp).toLocaleDateString('es-AR');
                 const time = new Date(reserva.timestamp).toLocaleTimeString('es-AR');
                 
+                // Lógica de color y título basada en el estado
+                const ticketTitle = isConfirmed ? 'ENTRADA CONFIRMADA' : 'COMPROBANTE PENDIENTE';
+                const borderColor = isConfirmed ? '#27ae60' : '#e67e22'; // Verde para Confirmado, Naranja para Pendiente
+                const titleColor = isConfirmed ? '#27ae60' : '#e67e22';
+
                 const ticketContent = `
                     <!DOCTYPE html>
                     <html lang="es">
                     <head>
-                        <title>Entrada Confirmada: ${reserva.nombre} - ${reserva.dni}</title>
+                        <title>${ticketTitle}: ${reserva.nombre} - ${reserva.dni}</title>
                         <style>
                             /* Estilos para la entrada */
                             body { font-family: 'Arial', sans-serif; margin: 0; background-color: #f4f4f4; padding: 20px; }
                             .ticket-container { 
                                 width: 400px; 
                                 margin: 20px auto; 
-                                border: 2px solid #27ae60; 
+                                border: 2px solid ${borderColor}; 
                                 padding: 20px; 
                                 border-radius: 10px; 
                                 background-color: white;
                                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
                                 box-sizing: border-box;
                             }
-                            .header { text-align: center; border-bottom: 2px dashed #27ae60; padding-bottom: 10px; margin-bottom: 15px; }
-                            .header h2 { color: #27ae60; margin: 0; }
+                            .header { text-align: center; border-bottom: 2px dashed ${borderColor}; padding-bottom: 10px; margin-bottom: 15px; }
+                            .header h2 { color: ${titleColor}; margin: 0; }
                             .details p { margin: 5px 0; font-size: 1.1em; }
                             .details strong { display: inline-block; width: 120px; color: #34495e; }
                             .seats { 
@@ -488,7 +497,7 @@
                     <body>
                         <div class="ticket-container">
                             <div class="header">
-                                <h2>🎫 ENTRADA CONFIRMADA</h2>
+                                <h2>🎫 ${ticketTitle}</h2>
                                 <p>Meraki - Bailemos Mov</p>
                             </div>
 
@@ -507,7 +516,7 @@
                             </div>
 
                             <div class="footer">
-                                <p>¡Presentar este comprobante (impreso o digital) para el ingreso!</p>
+                                <p>¡Presentar este comprobante (impreso o digital) para el ingreso! ${isConfirmed ? '' : ' (Sujeto a Confirmación de Pago)'}</p>
                             </div>
                             
                             <button class="print-button" onclick="window.print()">Guardar como PDF / Imprimir</button>
@@ -562,14 +571,18 @@
                 
                 const isExpired = reserva.estado === 'PENDIENTE' && reserva.expiracion < now;
                 
-                // Formatear la expiración solo la hora/minuto
                 const expirationDate = reserva.expiracion ? new Date(reserva.expiracion).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
                 const estadoClass = `status-${reserva.estado.toLowerCase()}`;
                 
                 let accionesHTML;
+                
+                // Botón "Ver Entrada" siempre visible
+                const viewButton = `<button class="btn-confirm btn-view" onclick="visualizarEntrada('${key}')" title="Ver Comprobante de Entrada">🎫</button>`;
+
                 if (reserva.estado === 'PENDIENTE') {
                     // BOTONES PARA RESERVAS PENDIENTES
                     accionesHTML = `
+                        ${viewButton}
                         <button class="btn-confirm" onclick="confirmarReserva('${key}', '${butacasInternal}')">Confirmar</button>
                         <button class="btn-delete" onclick="eliminarReserva('${key}', '${butacasInternal}')">Cancelar</button>
                     `;
@@ -578,18 +591,696 @@
                         accionesHTML = `<span style="color: red; font-weight: bold;">EXPIRADA</span> ` + accionesHTML;
                     }
                 } else { // CONFIRMADO
-                    // BOTONES PARA RESERVAS CONFIRMADAS - AQUÍ ESTÁ EL BOTÓN 'Ver Entrada'
+                    // BOTONES PARA RESERVAS CONFIRMADAS
                     accionesHTML = `
-                        <button class="btn-confirm btn-view" onclick="visualizarEntrada('${key}')">Ver Entrada</button>
+                        ${viewButton}
                         <button class="btn-delete" onclick="eliminarReserva('${key}', '${butacasInternal}')" title="Elimina la venta y libera asientos">Liberar</button>
                     `;
                 }
 
-                // Mostrar el costo total correctamente (si se lo añades en index.html, aquí aparecerá)
                 const costoTotalDisplay = reserva.costo_total !== undefined && reserva.costo_total !== null
                                         ? `$${reserva.costo_total.toLocaleString('es-AR')}` : 'N/A';
                 
-                // Generar una referencia corta para la tabla
+                const refDisplay = reserva.referencia ? reserva.referencia.substring(4) : key;
+                
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${refDisplay}</td>
+                    <td>${reserva.dni}</td>
+                    <td>${reserva.nombre}</td>
+                    <td>${reserva.email || 'N/A'}</td>
+                    <td>${reserva.cantidad}</td>
+                    <td>${butacasVisual}</td>
+                    <td>${costoTotalDisplay}</td>
+                    <td class="${estadoClass}">${reserva.estado}</td>
+                    <td>${expirationDate}</td>
+                    <td>${accionesHTML}</td>
+                `;
+            });
+        }
+        
+        /** Muestra la tabla de cupos autorizados (reservasConfirmadas) */
+        function renderReservasConfirmadas(cupos) {
+            const tbody = document.querySelector('#reservas-confirmadas-table tbody');
+            tbody.innerHTML = '';
+            
+            Object.keys(cupos).forEach(key => {
+                const cupo = cupos[key];
+                
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${cupo.dni}</td>
+                    <td>${cupo.apellido}</td>
+                    <td>${cupo.entradas}</td>
+                    <td>
+                        <button onclick="eliminarCupo('${key}', '${cupo.dni}')" class="btn-delete">Eliminar</button>
+                    </td>
+                `;
+            });
+        }
+        
+        /** Dibuja el mapa de asientos para el administrador */
+        function renderAuditoriumAdmin(asientos) {
+            const container = document.getElementById('seat-map-admin-container');
+            container.innerHTML = '';
+
+            for (const [filaLabel, asientosFila] of Object.entries(DISENO_AUDITORIO)) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'row-container-admin';
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'row-label-admin';
+                labelDiv.textContent = filaLabel.replace('Fila ', 'F');
+                rowDiv.appendChild(labelDiv);
+
+                asientosFila.forEach(butacaNum => {
+                    const seatDiv = document.createElement('div');
+                    
+                    if (butacaNum === null) {
+                        seatDiv.className = 'seat-admin empty';
+                    } else {
+                        const seatIdInternal = `${filaLabel.replace(' ', '')}-${butacaNum}`;
+                        seatDiv.className = 'seat-admin';
+                        seatDiv.textContent = butacaNum;
+
+                        let status = 'disponible';
+                        if (asientos.includes(`${seatIdInternal}-CONFIRMADO`)) {
+                            status = 'confirmado';
+                        } else if (asientos.includes(`${seatIdInternal}-PENDIENTE`)) {
+                            status = 'pendiente';
+                        }
+                        
+                        seatDiv.classList.add(status);
+                    }
+                    rowDiv.appendChild(seatDiv);
+                });
+                container.appendChild(rowDiv);
+            }
+        }
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Administración de Reservas - Auditorio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 1300px; 
+            margin: 0 auto;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #2c3e50;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 0.85em; 
+            word-wrap: break-word;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+        }
+        .btn-confirm {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .btn-confirm:hover { background-color: #27ae60; }
+        .btn-delete {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-left: 5px;
+        }
+        .btn-delete:hover { background-color: #c0392b; }
+        
+        /* Estilo para el botón de Ver Entrada (Azul) */
+        .btn-view {
+            background-color: #3498db;
+            margin-right: 5px;
+            /* Estilo más pequeño para que quepa junto a otros botones */
+            padding: 6px 6px; 
+            font-size: 0.7em;
+        }
+        .btn-view:hover { background-color: #2980b9; }
+
+        .status-pendiente { color: #e67e22; font-weight: bold; }
+        .status-confirmado { color: #27ae60; font-weight: bold; }
+
+        .form-container {
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .form-container input[type="text"], 
+        .form-container input[type="number"] {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 180px;
+        }
+        .form-container button {
+            padding: 8px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        /* Estilos para el mapa */
+        .seat-map-admin {
+            display: inline-block;
+            background-color: #34495e;
+            padding: 10px 5px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .seat-map-container-admin { text-align: center; }
+        .seat-admin {
+            width: 18px; 
+            height: 18px; 
+            line-height: 18px;
+            margin: 1px;
+            border-radius: 3px;
+            font-size: 0.55em;
+            color: white;
+            font-weight: bold;
+            display: inline-block;
+            text-align: center;
+        }
+        .row-container-admin {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2px;
+        }
+        .row-label-admin {
+            font-weight: bold;
+            color: white;
+            padding-right: 5px;
+            width: 25px; 
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .seat-admin.disponible { background-color: #2ecc71; }
+        .seat-admin.pendiente { background-color: #f39c12; }
+        .seat-admin.confirmado { background-color: #e74c3c; }
+        .seat-admin.empty { background-color: transparent; visibility: hidden; }
+        .stage-admin, .cabin-admin {
+            padding: 6px 0;
+            margin: 5px 0;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 4px;
+        }
+        .stage-admin { background-color: #c0392b; color: white; }
+        .cabin-admin { background-color: #34495e; color: white; border: 2px solid #2c3e50; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Panel de Administración de Entradas</h1>
+
+        <h2>Gestión de Cupos (DNI Autorizados)</h2>
+        <div class="form-container">
+            <input type="text" id="input-admin-dni" placeholder="DNI (sin puntos)">
+            <input type="text" id="input-admin-apellido" placeholder="Apellido de Familia">
+            <input type="number" id="input-admin-entradas" placeholder="N° Entradas" min="1" value="1">
+            <button onclick="cargarCupo()">Añadir/Actualizar Cupo</button>
+            <div id="cupo-message" style="margin-top: 10px; font-weight: bold;"></div>
+        </div>
+
+        <h2>Pre-Reservas y Confirmaciones</h2>
+        <table id="reservas-pendientes-table">
+            <thead>
+                <tr>
+                    <th>Ref.</th>
+                    <th>DNI</th>
+                    <th>Familia</th>
+                    <th>Email</th>
+                    <th>Cant.</th>
+                    <th>Butacas</th>
+                    <th>Total Pagar</th>
+                    <th>Estado</th>
+                    <th>Expira</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+
+        <h2>Estado Actual del Auditorio</h2>
+        <div class="legend">
+            <span style="background-color: #2ecc71; color: white; padding: 5px;">Disponible</span>
+            <span style="background-color: #f39c12; color: white; padding: 5px;">Pendiente</span>
+            <span style="background-color: #e74c3c; color: white; padding: 5px;">Confirmado</span>
+        </div>
+        
+        <div class="seat-map-container-admin">
+            <div class="stage-admin">ESCENARIO</div>
+            <div class="seat-map-admin" id="seat-map-admin-container">
+            </div>
+            <div class="cabin-admin">CABINA</div>
+        </div>
+
+        <h2>Cupo Total por DNI</h2>
+        <table id="reservas-confirmadas-table">
+            <thead>
+                <tr>
+                    <th>DNI</th>
+                    <th>Apellido (Familia)</th>
+                    <th>Entradas Autorizadas</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+
+    </div>
+
+    <script>
+        // --- FIREBASE V8 INICIALIZACIÓN ---
+        // *** REVISA ESTA CONFIGURACIÓN SI ESTÁS TENIENDO PROBLEMAS DE CONEXIÓN ***
+        const firebaseConfig = {
+          apiKey: "AIzaSyC_q9XUxb5e0X4wS4cB168Hh7-fG9Hmq",
+          authDomain: "ventaentradasorne.firebaseapp.com",
+          databaseURL: "https://ventaentradasorne-default-rtdb.firebaseio.com",
+          projectId: "ventaentradasorne",
+          storageBucket: "ventaentradasorne.appspot.com",
+          messagingSenderId: "10786673844635",
+          appId: "1:10786673844635:web:bd8a949271a5a7691e39e"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // --- CONFIGURACIÓN DEL PLANO (DEBE COINCIDIR CON index.html) ---
+        const createCenterSplitBlock = (maxPair, maxOdd) => {
+            const leftBlock = [];
+            for (let i = maxPair; i >= 2; i -= 2) { leftBlock.push(i); }
+            const rightBlock = [];
+            for (let i = 1; i <= maxOdd; i += 2) { rightBlock.push(i); }
+            return [...leftBlock, ...rightBlock]; 
+        };
+        
+        const DISENO_AUDITORIO = {
+            'Fila 1': [...createCenterSplitBlock(18, 23), null], 
+            'Fila 2': [null, ...createCenterSplitBlock(24, 23), null], 
+            'Fila 3': [null, ...createCenterSplitBlock(24, 25), null],
+            'Fila 4': [null, ...createCenterSplitBlock(26, 27), null], 
+            'Fila 5': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 6': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 7': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 8': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 9': [null, ...createCenterSplitBlock(28, 27), null],
+            'Fila 10': [null, ...createCenterSplitBlock(26, 25), null], 
+            'Fila 11': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null], 
+            'Fila 12': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null],
+            'Fila 13': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null],
+            'Fila 14': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null],
+            'Fila 15': [null, null, null, ...createCenterSplitBlock(18, 17), null, null, null],
+            'Fila 16': [24, 22, 20, 18, null, ...createCenterSplitBlock(16, 15), null, 17, 19, 21, 23], 
+            'Fila 17': [26, 24, 22, 20, 18, null, ...createCenterSplitBlock(12, 11), null, 13, 15, 17, 19, 21], 
+            'Fila 18': [22, 20, 18, 16, 14, null, ...createCenterSplitBlock(12, 11), null, 13, 15, 17, 19, 21],
+        };
+
+
+        // --- FUNCIÓN DE CARGA/ACTUALIZACIÓN DE CUPOS ---
+        async function cargarCupo() {
+            const dni = document.getElementById('input-admin-dni').value.trim();
+            const apellido = document.getElementById('input-admin-apellido').value.trim();
+            const entradas = parseInt(document.getElementById('input-admin-entradas').value);
+            const messageDiv = document.getElementById('cupo-message');
+
+            if (!dni || !apellido || isNaN(entradas) || entradas < 1) {
+                messageDiv.textContent = 'Por favor, complete todos los campos y asegúrese de que la cantidad de entradas sea válida.';
+                messageDiv.style.color = '#e74c3c';
+                return;
+            }
+
+            try {
+                const snapshot = await db.ref('reservasConfirmadas').orderByChild('dni').equalTo(dni).once('value');
+                const existingData = snapshot.val();
+                let key;
+
+                if (existingData) {
+                    key = Object.keys(existingData)[0];
+                    messageDiv.textContent = `Cupo para DNI ${dni} actualizado a ${entradas} entradas.`;
+                    messageDiv.style.color = '#27ae60';
+                } else {
+                    key = db.ref('reservasConfirmadas').push().key;
+                    messageDiv.textContent = `Nuevo cupo para DNI ${dni} cargado con ${entradas} entradas.`;
+                    messageDiv.style.color = '#3498db';
+                }
+                
+                await db.ref(`reservasConfirmadas/${key}`).set({
+                    dni: dni,
+                    apellido: apellido,
+                    entradas: entradas
+                });
+                
+                document.getElementById('input-admin-dni').value = '';
+                document.getElementById('input-admin-apellido').value = '';
+                document.getElementById('input-admin-entradas').value = '1';
+
+            } catch (error) {
+                console.error("Error al cargar/actualizar cupo:", error);
+                messageDiv.textContent = 'Error al comunicarse con Firebase.';
+                messageDiv.style.color = '#e74c3c';
+            }
+        }
+        
+        // --- FUNCIÓN PARA ELIMINAR CUPOS ---
+        async function eliminarCupo(cupoKey, dni) {
+            if (!confirm(`¿Está seguro de ELIMINAR el cupo autorizado para el DNI ${dni}? Esto afectará su capacidad para reservar.`)) {
+                return;
+            }
+            try {
+                // 1. Eliminar el cupo de reservasConfirmadas
+                await db.ref(`reservasConfirmadas/${cupoKey}`).remove();
+                alert(`Cupo para DNI ${dni} eliminado.`);
+            } catch (error) {
+                console.error("Error al eliminar cupo:", error);
+                alert("Ocurrió un error al eliminar el cupo.");
+            }
+        }
+
+
+        // --- FUNCIONES DE ADMINISTRACIÓN DE RESERVAS ---
+        
+        /** Función para CONFIRMAR una reserva pendiente */
+        async function confirmarReserva(reservaKey, butacasInternalIdsString) {
+            const butacasInternalIds = butacasInternalIdsString.split(','); 
+            
+            if (!confirm(`¿Está seguro de CONFIRMAR la reserva ${reservaKey}? Esto marcará los asientos como vendidos y consumirá el cupo.`)) {
+                return;
+            }
+
+            try {
+                const updates = {};
+                
+                // 1. Marcar la reserva como CONFIRMADO en 'preReservas'
+                updates[`preReservas/${reservaKey}/estado`] = 'CONFIRMADO';
+                
+                // 2. Obtener el snapshot de los asientos
+                const asientosSnapshot = await db.ref('asientos').once('value');
+                let asientos = asientosSnapshot.val() || [];
+                
+                // 3. Modificar los asientos: cambiar PENDIENTE a CONFIRMADO
+                butacasInternalIds.forEach(id => {
+                    const pendienteID = `${id}-PENDIENTE`;
+                    const confirmadoID = `${id}-CONFIRMADO`;
+                    
+                    const index = asientos.indexOf(pendienteID);
+                    if (index !== -1) {
+                        asientos[index] = confirmadoID;
+                    }
+                });
+                
+                // 4. Actualizar el nodo 'asientos'
+                updates['asientos'] = asientos;
+                
+                await db.ref('/').update(updates);
+
+                alert("✅ Reserva Confirmada exitosamente! El mapa y las reservas han sido actualizados.");
+
+            } catch (error) {
+                console.error("Error al confirmar la reserva:", error);
+                alert("Ocurrió un error al confirmar la reserva.");
+            }
+        }
+        
+        /** Función para ELIMINAR/CANCELAR una reserva pendiente */
+        async function eliminarReserva(reservaKey, butacasInternalIdsString) {
+            const butacasInternalIds = butacasInternalIdsString.split(',');
+
+            if (!confirm(`¿Está seguro de CANCELAR la reserva ${reservaKey}? Esto liberará los asientos PENDIENTES o eliminará el registro de venta si estaba CONFIRMADA.`)) {
+                return;
+            }
+
+            try {
+                const updates = {};
+                
+                const reservaSnapshot = await db.ref(`preReservas/${reservaKey}`).once('value');
+                const reserva = reservaSnapshot.val();
+                
+                // 1. Eliminar la reserva de 'preReservas'
+                updates[`preReservas/${reservaKey}`] = null;
+                
+                // 2. Obtener el snapshot de los asientos
+                const asientosSnapshot = await db.ref('asientos').once('value');
+                let asientos = asientosSnapshot.val() || [];
+                
+                // 3. Eliminar los asientos PENDIENTES o CONFIRMADOS asociados
+                butacasInternalIds.forEach(id => {
+                    if (reserva.estado === 'PENDIENTE') {
+                        const pendienteID = `${id}-PENDIENTE`;
+                        asientos = asientos.filter(item => item !== pendienteID);
+                    } else if (reserva.estado === 'CONFIRMADO') {
+                        const confirmadoID = `${id}-CONFIRMADO`;
+                        asientos = asientos.filter(item => item !== confirmadoID);
+                    }
+                });
+                
+                // 4. Actualizar el nodo 'asientos'
+                updates['asientos'] = asientos;
+                
+                await db.ref('/').update(updates);
+
+                alert("❌ Reserva Eliminada/Cancelada exitosamente! Los asientos están disponibles.");
+
+            } catch (error) {
+                console.error("Error al eliminar la reserva:", error);
+                alert("Ocurrió un error al eliminar la reserva.");
+            }
+        }
+        
+        /** Modificada: Visualiza la entrada y advierte si no está confirmada */
+        async function visualizarEntrada(reservaKey) {
+            try {
+                const snapshot = await db.ref(`preReservas/${reservaKey}`).once('value');
+                const reserva = snapshot.val();
+
+                if (!reserva) {
+                    alert("No se encontró una reserva con esa referencia.");
+                    return;
+                }
+                
+                const isConfirmed = reserva.estado === 'CONFIRMADO';
+                
+                if (!isConfirmed) {
+                    alert(`⚠️ ADVERTENCIA: La entrada para la referencia ${reserva.referencia || reservaKey} no está CONFIRMADA. Se muestra solo como comprobante de reserva PENDIENTE.`);
+                }
+
+                // Asegurar que costo_total tenga un valor o sea 0 para toLocaleString
+                const costoTotal = reserva.costo_total !== undefined && reserva.costo_total !== null 
+                                 ? reserva.costo_total : 0;
+                
+                const referenciaDisplay = reserva.referencia || reservaKey;
+                const butacasList = reserva.butacas_visuales ? reserva.butacas_visuales.join(', ') : 'N/A';
+                const date = new Date(reserva.timestamp).toLocaleDateString('es-AR');
+                const time = new Date(reserva.timestamp).toLocaleTimeString('es-AR');
+                
+                // Lógica de color y título basada en el estado
+                const ticketTitle = isConfirmed ? 'ENTRADA CONFIRMADA' : 'COMPROBANTE PENDIENTE';
+                const borderColor = isConfirmed ? '#27ae60' : '#e67e22'; // Verde para Confirmado, Naranja para Pendiente
+                const titleColor = isConfirmed ? '#27ae60' : '#e67e22';
+
+                const ticketContent = `
+                    <!DOCTYPE html>
+                    <html lang="es">
+                    <head>
+                        <title>${ticketTitle}: ${reserva.nombre} - ${reserva.dni}</title>
+                        <style>
+                            /* Estilos para la entrada */
+                            body { font-family: 'Arial', sans-serif; margin: 0; background-color: #f4f4f4; padding: 20px; }
+                            .ticket-container { 
+                                width: 400px; 
+                                margin: 20px auto; 
+                                border: 2px solid ${borderColor}; 
+                                padding: 20px; 
+                                border-radius: 10px; 
+                                background-color: white;
+                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                                box-sizing: border-box;
+                            }
+                            .header { text-align: center; border-bottom: 2px dashed ${borderColor}; padding-bottom: 10px; margin-bottom: 15px; }
+                            .header h2 { color: ${titleColor}; margin: 0; }
+                            .details p { margin: 5px 0; font-size: 1.1em; }
+                            .details strong { display: inline-block; width: 120px; color: #34495e; }
+                            .seats { 
+                                margin-top: 15px; 
+                                padding: 10px; 
+                                border: 1px solid #ccc; 
+                                border-radius: 5px; 
+                                background-color: #ecf0f1;
+                            }
+                            .seats span { font-size: 1.3em; color: #e74c3c; font-weight: bold; }
+                            .footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #7f8c8d; }
+                            .print-button {
+                                display: block; 
+                                width: 100%; 
+                                padding: 10px; 
+                                margin-top: 20px; 
+                                background-color: #3498db; 
+                                color: white; 
+                                border: none; 
+                                border-radius: 5px; 
+                                cursor: pointer;
+                                font-size: 1.1em;
+                            }
+                            /* Media Query para la impresión */
+                            @media print {
+                                .print-button { display: none; }
+                                body { background-color: white; padding: 0; }
+                                .ticket-container { border: none; box-shadow: none; width: auto; }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="ticket-container">
+                            <div class="header">
+                                <h2>🎫 ${ticketTitle}</h2>
+                                <p>Meraki - Bailemos Mov</p>
+                            </div>
+
+                            <div class="details">
+                                <p><strong>Familia:</strong> ${reserva.nombre}</p>
+                                <p><strong>DNI:</strong> ${reserva.dni}</p>
+                                <p><strong>Cantidad:</strong> ${reserva.cantidad} Butaca(s)</p>
+                                <p><strong>Total Pagado:</strong> $${costoTotal.toLocaleString('es-AR')}</p>
+                                <p><strong>Referencia:</strong> ${referenciaDisplay}</p>
+                                <p><strong>Fecha Venta:</strong> ${date} ${time}</p>
+                            </div>
+
+                            <div class="seats">
+                                <p style="font-weight: bold; margin-bottom: 5px;">BUTACAS ASIGNADAS:</p>
+                                <span>${butacasList}</span>
+                            </div>
+
+                            <div class="footer">
+                                <p>¡Presentar este comprobante (impreso o digital) para el ingreso! ${isConfirmed ? '' : ' (Sujeto a Confirmación de Pago)'}</p>
+                            </div>
+                            
+                            <button class="print-button" onclick="window.print()">Guardar como PDF / Imprimir</button>
+                        </div>
+                    </body>
+                    </html>
+                `;
+
+                const newWindow = window.open('', '_blank', 'width=500,height=700');
+                newWindow.document.write(ticketContent);
+                newWindow.document.close();
+                newWindow.focus();
+
+            } catch (error) {
+                console.error("Error al visualizar la entrada:", error);
+                alert("Ocurrió un error al cargar los datos de la entrada.");
+            }
+        }
+
+
+        // --- RENDERIZADO DE DATOS ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Escuchadores de Firebase para actualizar las tablas y el mapa en tiempo real
+            db.ref('preReservas').on('value', (snapshot) => {
+                const reservas = snapshot.val() || {};
+                renderReservas(reservas); 
+            });
+            
+            db.ref('reservasConfirmadas').on('value', (snapshot) => {
+                const cupos = snapshot.val() || {};
+                renderReservasConfirmadas(cupos);
+            });
+            
+            db.ref('asientos').on('value', (snapshot) => {
+                const asientos = snapshot.val() || [];
+                renderAuditoriumAdmin(asientos);
+            });
+        });
+
+        /** Muestra la tabla de RESERVAS (PENDIENTES y CONFIRMADAS) */
+        function renderReservas(reservas) {
+            const tbody = document.querySelector('#reservas-pendientes-table tbody');
+            tbody.innerHTML = '';
+            const now = Date.now();
+            
+            Object.keys(reservas).forEach(key => {
+                const reserva = reservas[key];
+                
+                const butacasVisual = reserva.butacas_visuales ? reserva.butacas_visuales.join(', ') : 'N/A';
+                const butacasInternal = reserva.butacas_internal_ids ? reserva.butacas_internal_ids.join(',') : ''; 
+                
+                const isExpired = reserva.estado === 'PENDIENTE' && reserva.expiracion < now;
+                
+                const expirationDate = reserva.expiracion ? new Date(reserva.expiracion).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
+                const estadoClass = `status-${reserva.estado.toLowerCase()}`;
+                
+                let accionesHTML;
+                
+                // Botón "Ver Entrada" siempre visible
+                const viewButton = `<button class="btn-confirm btn-view" onclick="visualizarEntrada('${key}')" title="Ver Comprobante de Entrada">🎫</button>`;
+
+                if (reserva.estado === 'PENDIENTE') {
+                    // BOTONES PARA RESERVAS PENDIENTES
+                    accionesHTML = `
+                        ${viewButton}
+                        <button class="btn-confirm" onclick="confirmarReserva('${key}', '${butacasInternal}')">Confirmar</button>
+                        <button class="btn-delete" onclick="eliminarReserva('${key}', '${butacasInternal}')">Cancelar</button>
+                    `;
+                    if (isExpired) {
+                        // Resaltar si está expirada
+                        accionesHTML = `<span style="color: red; font-weight: bold;">EXPIRADA</span> ` + accionesHTML;
+                    }
+                } else { // CONFIRMADO
+                    // BOTONES PARA RESERVAS CONFIRMADAS
+                    accionesHTML = `
+                        ${viewButton}
+                        <button class="btn-delete" onclick="eliminarReserva('${key}', '${butacasInternal}')" title="Elimina la venta y libera asientos">Liberar</button>
+                    `;
+                }
+
+                const costoTotalDisplay = reserva.costo_total !== undefined && reserva.costo_total !== null
+                                        ? `$${reserva.costo_total.toLocaleString('es-AR')}` : 'N/A';
+                
                 const refDisplay = reserva.referencia ? reserva.referencia.substring(4) : key;
                 
                 const row = tbody.insertRow();
