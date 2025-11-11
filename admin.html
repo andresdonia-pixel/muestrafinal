@@ -9,6 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
+        /* --- Estilos Base --- */
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
@@ -19,205 +20,287 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            max-width: 1300px; 
+            max-width: 1200px;
             margin: 0 auto;
         }
-        h1, h2 {
+        h1 {
             text-align: center;
             color: #2c3e50;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 30px;
+        
+        /* --- Estilos del Admin --- */
+        .section-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px;
+            margin-top: 20px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        th, td {
-            border: 1px solid #ddd;
+        .section-header h2 {
+            margin: 0;
+            font-size: 1.4em;
+        }
+        .section-header button {
+            background-color: #c0392b;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        /* --- Cuadros de Cupo --- */
+        #cupo-management {
+            padding: 15px;
+            border: 1px solid #bdc3c7;
+            border-radius: 6px;
+            margin-top: 15px;
+            background-color: #ecf0f1;
+        }
+        #cupo-management input[type="text"], 
+        #cupo-management input[type="number"] {
             padding: 8px;
-            text-align: left;
-            font-size: 0.85em; 
-            word-wrap: break-word;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            width: 120px;
         }
-        th {
-            background-color: #3498db;
-            color: white;
-            cursor: pointer;
-        }
-        .btn-confirm {
-            background-color: #2ecc71;
+        #cupo-management button {
+            background-color: #2980b9;
             color: white;
             border: none;
-            padding: 6px 10px;
+            padding: 8px 15px;
+            border-radius: 3px;
             cursor: pointer;
-            border-radius: 4px;
         }
-        .btn-confirm:hover { background-color: #27ae60; }
-        .btn-delete {
+        .cupo-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 15px;
+        }
+        .cupo-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .cupo-item:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .cupo-actions button {
             background-color: #e74c3c;
-            color: white;
-            border: none;
-            padding: 6px 10px;
-            cursor: pointer;
-            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 0.8em;
             margin-left: 5px;
         }
-        .btn-delete:hover { background-color: #c0392b; }
         
-        /* Estilo para el botón de Ver Entrada (Azul) */
-        .btn-view {
-            background-color: #3498db;
-            margin-right: 5px;
-            /* Estilo más pequeño para que quepa junto a otros botones */
-            padding: 6px 6px; 
-            font-size: 0.7em;
-        }
-        .btn-view:hover { background-color: #2980b9; }
-
-        .status-pendiente { color: #e67e22; font-weight: bold; }
-        .status-confirmado { color: #27ae60; font-weight: bold; }
-
-        .form-container {
-            padding: 20px;
-            border: 1px solid #ccc;
+        /* --- Mapa de Asientos --- */
+        #seat-map-management {
+            margin-top: 15px;
+            background-color: #34495e; 
+            padding: 20px 10px;
             border-radius: 8px;
-            margin-bottom: 30px;
-        }
-        .form-container input[type="text"], 
-        .form-container input[type="number"] {
-            padding: 8px;
-            margin: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            width: 180px;
-        }
-        .form-container button {
-            padding: 8px 15px;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        
-        /* Estilos para el mapa */
-        .seat-map-admin {
-            display: inline-block;
-            background-color: #34495e;
-            padding: 10px 5px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-        }
-        .seat-map-container-admin { text-align: center; }
-        .seat-admin {
-            width: 18px; 
-            height: 18px; 
-            line-height: 18px;
-            margin: 1px;
-            border-radius: 3px;
-            font-size: 0.55em;
-            color: white;
-            font-weight: bold;
-            display: inline-block;
             text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            /* Permite scroll horizontal */
+            overflow-x: auto; 
+            white-space: nowrap; 
         }
-        .row-container-admin {
+        .row-container {
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 2px;
+            margin-bottom: 5px;
         }
-        .row-label-admin {
+        .row-label {
             font-weight: bold;
             color: white;
-            padding-right: 5px;
-            width: 25px; 
+            padding-right: 10px;
+            width: 40px; 
             text-align: right;
             flex-shrink: 0;
         }
-        .seat-admin.disponible { background-color: #2ecc71; }
-        .seat-admin.pendiente { background-color: #f39c12; }
-        .seat-admin.confirmado { background-color: #e74c3c; }
-        .seat-admin.empty { background-color: transparent; visibility: hidden; }
-        .stage-admin, .cabin-admin {
-            padding: 6px 0;
-            margin: 5px 0;
+        .seat {
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            margin: 2px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            color: white;
+            font-weight: bold;
+            display: inline-block;
+            text-align: center;
+            user-select: none;
+            transition: transform 0.1s;
+        }
+        .seat-empty {
+            background-color: transparent;
+            cursor: default;
+            visibility: hidden;
+            border: none;
+        }
+        .seat.disponible { background-color: #2ecc71; cursor: pointer; }
+        .seat.pendiente { background-color: #f39c12; cursor: pointer; }
+        .seat.confirmado { background-color: #e74c3c; cursor: pointer; }
+
+        .stage, .cabin {
+            background-color: #c0392b;
+            color: white;
+            padding: 10px 0;
+            margin: 10px 0;
             font-weight: bold;
             text-align: center;
             border-radius: 4px;
         }
-        .stage-admin { background-color: #c0392b; color: white; }
-        .cabin-admin { background-color: #34495e; color: white; border: 2px solid #2c3e50; }
+        .cabin {
+            background-color: #34495e; 
+            border: 2px solid #2c3e50;
+        }
 
+        /* --- Tabla de Pre-Reservas --- */
+        #reservas-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        #reservas-list th, #reservas-list td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        #reservas-list th {
+            background-color: #2c3e50;
+            color: white;
+            font-size: 1.0em;
+        }
+        .estado-PENDIENTE { background-color: #fcf8e3; color: #8a6d3b; }
+        .estado-CONFIRMADO { background-color: #dff0d8; color: #3c763d; font-weight: bold; }
+        .estado-EXPIRADO { background-color: #f2dede; color: #a94442; }
+        
+        .action-button {
+            padding: 5px 10px;
+            margin: 2px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        .btn-confirm { background-color: #27ae60; color: white; }
+        .btn-cancel { background-color: #c0392b; color: white; }
+        
+        /* --- Responsive Design (Ajustes para móvil en admin) --- */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .section-header button {
+                margin-top: 10px;
+            }
+            #reservas-list, .cupo-item {
+                font-size: 0.7em;
+            }
+            #cupo-management input[type="text"], 
+            #cupo-management input[type="number"] {
+                width: 90%;
+                margin: 5px 0;
+                display: block;
+            }
+            #cupo-management button {
+                width: 100%;
+                margin-top: 10px;
+            }
+            .seat {
+                 width: 12px; 
+                 height: 12px; 
+                 line-height: 12px;
+                 font-size: 0.3em;
+            }
+            .row-label {
+                width: 15px; 
+                font-size: 0.6em;
+            }
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Panel de Administración de Entradas</h1>
+        <h1>Panel de Administración del Auditorio</h1>
 
-        <h2>Gestión de Cupos (DNI Autorizados)</h2>
-        <div class="form-container">
-            <input type="text" id="input-admin-dni" placeholder="DNI (sin puntos)">
-            <input type="text" id="input-admin-apellido" placeholder="Apellido de Familia">
-            <input type="number" id="input-admin-entradas" placeholder="N° Entradas" min="1" value="1">
-            <button onclick="cargarCupo()">Añadir/Actualizar Cupo</button>
-            <div id="cupo-message" style="margin-top: 10px; font-weight: bold;"></div>
-        </div>
+        <div id="admin-content">
+            
+            <div class="section-header">
+                <h2>1. Gestión de Cupos por Familia</h2>
+                <button onclick="clearAllCupos()">Borrar TODOS los Cupos</button>
+            </div>
+            <div id="cupo-management">
+                <h3>Añadir/Actualizar Cupo:</h3>
+                <input type="text" id="cupo-apellido" placeholder="Apellido (Familia)">
+                <input type="text" id="cupo-dni" placeholder="DNI (Sin puntos)">
+                <input type="number" id="cupo-entradas" placeholder="Nº Entradas (Cupo)">
+                <button onclick="addOrUpdateCupo()">Añadir/Actualizar Cupo</button>
+                
+                <h3>Cupos Existentes:</h3>
+                <ul class="cupo-list" id="cupo-list">
+                    </ul>
+            </div>
+            
+            <hr>
 
-        <h2>Pre-Reservas y Confirmaciones</h2>
-        <table id="reservas-pendientes-table">
-            <thead>
-                <tr>
-                    <th>Ref.</th>
-                    <th>DNI</th>
-                    <th>Familia</th>
-                    <th>Email</th>
-                    <th>Cant.</th>
-                    <th>Butacas</th>
-                    <th>Total Pagar</th>
-                    <th>Estado</th>
-                    <th>Expira</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                </tbody>
-        </table>
+            <div class="section-header">
+                <h2>2. Plano del Auditorio (Visualización y Gestión)</h2>
+                <button onclick="clearAllReservasAndAsientos()">Borrar TODAS las Reservas y Asientos</button>
+            </div>
+            <p style="text-align: center; margin-top: 10px;">
+                Haga clic en un asiento <span style="background-color: #f39c12; color: white; padding: 2px 5px; border-radius: 3px;">Naranja (Pendiente)</span> o <span style="background-color: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px;">Rojo (Confirmado)</span> para liberarlo manualmente.
+            </p>
+            <div class="stage">ESCENARIO</div>
+            <div id="seat-map-management">
+                </div>
+            <div class="cabin">CABINA</div>
+            
+            <hr>
 
-        <h2>Estado Actual del Auditorio</h2>
-        <div class="legend">
-            <span style="background-color: #2ecc71; color: white; padding: 5px;">Disponible</span>
-            <span style="background-color: #f39c12; color: white; padding: 5px;">Pendiente</span>
-            <span style="background-color: #e74c3c; color: white; padding: 5px;">Confirmado</span>
+            <div class="section-header">
+                <h2>3. Pre-Reservas Pendientes de Confirmación</h2>
+                <button onclick="checkExpiredReservations()">Revisar Expiración</button>
+            </div>
+            
+            <table id="reservas-list">
+                <thead>
+                    <tr>
+                        <th>Referencia</th>
+                        <th>Familia/DNI</th>
+                        <th>Cant.</th>
+                        <th>Butacas</th>
+                        <th>Costo</th>
+                        <th>Estado</th>
+                        <th>Expira</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            
         </div>
         
-        <div class="seat-map-container-admin">
-            <div class="stage-admin">ESCENARIO</div>
-            <div class="seat-map-admin" id="seat-map-admin-container">
-            </div>
-            <div class="cabin-admin">CABINA</div>
-        </div>
-
-        <h2>Cupo Total por DNI</h2>
-        <table id="reservas-confirmadas-table">
-            <thead>
-                <tr>
-                    <th>DNI</th>
-                    <th>Apellido (Familia)</th>
-                    <th>Entradas Autorizadas</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                </tbody>
-        </table>
-
     </div>
 
     <script>
-        // --- FIREBASE V8 INICIALIZACIÓN ---
-        // *** REVISA ESTA CONFIGURACIÓN SI ESTÁ AQUÍ O EN index.html***
+        // --- CONSTANTES DE CONFIGURACIÓN ---
+        
+        // ⚠️ CONFIGURACIÓN DE FIREBASE (Debe ser idéntica a index.html)
         const firebaseConfig = {
           apiKey: "AIzaSyC_q9XUxb5e0X4wS4cB168Hh7-fG9Hmq",
           authDomain: "ventaentradasorne.firebaseapp.com",
@@ -230,8 +313,8 @@
         
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-
-        // --- CONFIGURACIÓN DEL PLANO (DEBE COINCIDIR CON index.html) ---
+        
+        // --- CONFIGURACIÓN DEL PLANO (DEBE SER IDÉNTICA A index.html) ---
         const createCenterSplitBlock = (maxPair, maxOdd) => {
             const leftBlock = [];
             for (let i = maxPair; i >= 2; i -= 2) { leftBlock.push(i); }
@@ -260,395 +343,125 @@
             'Fila 17': [26, 24, 22, 20, 18, null, ...createCenterSplitBlock(12, 11), null, 13, 15, 17, 19, 21], 
             'Fila 18': [22, 20, 18, 16, 14, null, ...createCenterSplitBlock(12, 11), null, 13, 15, 17, 19, 21],
         };
-
-
-        // --- FUNCIÓN DE CARGA/ACTUALIZACIÓN DE CUPOS ---
-        async function cargarCupo() {
-            const dni = document.getElementById('input-admin-dni').value.trim();
-            const apellido = document.getElementById('input-admin-apellido').value.trim();
-            const entradas = parseInt(document.getElementById('input-admin-entradas').value);
-            const messageDiv = document.getElementById('cupo-message');
-
-            if (!dni || !apellido || isNaN(entradas) || entradas < 1) {
-                messageDiv.textContent = 'Por favor, complete todos los campos y asegúrese de que la cantidad de entradas sea válida.';
-                messageDiv.style.color = '#e74c3c';
-                return;
-            }
-
-            try {
-                const snapshot = await db.ref('reservasConfirmadas').orderByChild('dni').equalTo(dni).once('value');
-                const existingData = snapshot.val();
-                let key;
-
-                if (existingData) {
-                    key = Object.keys(existingData)[0];
-                    messageDiv.textContent = `Cupo para DNI ${dni} actualizado a ${entradas} entradas.`;
-                    messageDiv.style.color = '#27ae60';
-                } else {
-                    key = db.ref('reservasConfirmadas').push().key;
-                    messageDiv.textContent = `Nuevo cupo para DNI ${dni} cargado con ${entradas} entradas.`;
-                    messageDiv.style.color = '#3498db';
-                }
-                
-                await db.ref(`reservasConfirmadas/${key}`).set({
-                    dni: dni,
-                    apellido: apellido,
-                    entradas: entradas
-                });
-                
-                document.getElementById('input-admin-dni').value = '';
-                document.getElementById('input-admin-apellido').value = '';
-                document.getElementById('input-admin-entradas').value = '1';
-
-            } catch (error) {
-                console.error("Error al cargar/actualizar cupo:", error);
-                messageDiv.textContent = 'Error al comunicarse con Firebase.';
-                messageDiv.style.color = '#e74c3c';
-            }
-        }
         
-        // --- FUNCIÓN PARA ELIMINAR CUPOS ---
-        async function eliminarCupo(cupoKey, dni) {
-            if (!confirm(`¿Está seguro de ELIMINAR el cupo autorizado para el DNI ${dni}? Esto afectará su capacidad para reservar.`)) {
-                return;
-            }
-            try {
-                // 1. Eliminar el cupo de reservasConfirmadas
-                await db.ref(`reservasConfirmadas/${cupoKey}`).remove();
-                alert(`Cupo para DNI ${dni} eliminado.`);
-            } catch (error) {
-                console.error("Error al eliminar cupo:", error);
-                alert("Ocurrió un error al eliminar el cupo.");
-            }
-        }
-
-
-        // --- FUNCIONES DE ADMINISTRACIÓN DE RESERVAS ---
-        
-        /** Función para CONFIRMAR una reserva pendiente */
-        async function confirmarReserva(reservaKey, butacasInternalIdsString) {
-            const butacasInternalIds = butacasInternalIdsString.split(','); 
-            
-            if (!confirm(`¿Está seguro de CONFIRMAR la reserva ${reservaKey}? Esto marcará los asientos como vendidos y consumirá el cupo.`)) {
-                return;
-            }
-
-            try {
-                const updates = {};
-                
-                // 1. Marcar la reserva como CONFIRMADO en 'preReservas'
-                updates[`preReservas/${reservaKey}/estado`] = 'CONFIRMADO';
-                
-                // 2. Obtener el snapshot de los asientos
-                const asientosSnapshot = await db.ref('asientos').once('value');
-                let asientos = asientosSnapshot.val() || [];
-                
-                // 3. Modificar los asientos: cambiar PENDIENTE a CONFIRMADO
-                butacasInternalIds.forEach(id => {
-                    const pendienteID = `${id}-PENDIENTE`;
-                    const confirmadoID = `${id}-CONFIRMADO`;
-                    
-                    const index = asientos.indexOf(pendienteID);
-                    if (index !== -1) {
-                        asientos[index] = confirmadoID;
-                    }
-                });
-                
-                // 4. Actualizar el nodo 'asientos'
-                updates['asientos'] = asientos;
-                
-                await db.ref('/').update(updates);
-
-                alert("✅ Reserva Confirmada exitosamente! El mapa y las reservas han sido actualizados.");
-
-            } catch (error) {
-                console.error("Error al confirmar la reserva:", error);
-                alert("Ocurrió un error al confirmar la reserva.");
-            }
-        }
-        
-        /** Función para ELIMINAR/CANCELAR una reserva pendiente */
-        async function eliminarReserva(reservaKey, butacasInternalIdsString) {
-            const butacasInternalIds = butacasInternalIdsString.split(',');
-
-            if (!confirm(`¿Está seguro de CANCELAR la reserva ${reservaKey}? Esto liberará los asientos PENDIENTES o eliminará el registro de venta si estaba CONFIRMADA.`)) {
-                return;
-            }
-
-            try {
-                const updates = {};
-                
-                const reservaSnapshot = await db.ref(`preReservas/${reservaKey}`).once('value');
-                const reserva = reservaSnapshot.val();
-                
-                // 1. Eliminar la reserva de 'preReservas'
-                updates[`preReservas/${reservaKey}`] = null;
-                
-                // 2. Obtener el snapshot de los asientos
-                const asientosSnapshot = await db.ref('asientos').once('value');
-                let asientos = asientosSnapshot.val() || [];
-                
-                // 3. Eliminar los asientos PENDIENTES o CONFIRMADOS asociados
-                butacasInternalIds.forEach(id => {
-                    if (reserva.estado === 'PENDIENTE') {
-                        const pendienteID = `${id}-PENDIENTE`;
-                        asientos = asientos.filter(item => item !== pendienteID);
-                    } else if (reserva.estado === 'CONFIRMADO') {
-                        const confirmadoID = `${id}-CONFIRMADO`;
-                        asientos = asientos.filter(item => item !== confirmadoID);
-                    }
-                });
-                
-                // 4. Actualizar el nodo 'asientos'
-                updates['asientos'] = asientos;
-                
-                await db.ref('/').update(updates);
-
-                alert("❌ Reserva Eliminada/Cancelada exitosamente! Los asientos están disponibles.");
-
-            } catch (error) {
-                console.error("Error al eliminar la reserva:", error);
-                alert("Ocurrió un error al eliminar la reserva.");
-            }
-        }
-        
-        /** Modificada: Visualiza la entrada y advierte si no está confirmada */
-        async function visualizarEntrada(reservaKey) {
-            try {
-                const snapshot = await db.ref(`preReservas/${reservaKey}`).once('value');
-                const reserva = snapshot.val();
-
-                if (!reserva) {
-                    alert("No se encontró una reserva con esa referencia.");
-                    return;
-                }
-                
-                const isConfirmed = reserva.estado === 'CONFIRMADO';
-                
-                if (!isConfirmed) {
-                    alert(`⚠️ ADVERTENCIA: La entrada para la referencia ${reserva.referencia || reservaKey} no está CONFIRMADA. Se muestra solo como comprobante de reserva PENDIENTE.`);
-                }
-
-                // Asegurar que costo_total tenga un valor o sea 0 para toLocaleString
-                const costoTotal = reserva.costo_total !== undefined && reserva.costo_total !== null 
-                                 ? reserva.costo_total : 0;
-                
-                const referenciaDisplay = reserva.referencia || reservaKey;
-                const butacasList = reserva.butacas_visuales ? reserva.butacas_visuales.join(', ') : 'N/A';
-                const date = new Date(reserva.timestamp).toLocaleDateString('es-AR');
-                const time = new Date(reserva.timestamp).toLocaleTimeString('es-AR');
-                
-                // Lógica de color y título basada en el estado
-                const ticketTitle = isConfirmed ? 'ENTRADA CONFIRMADA' : 'COMPROBANTE PENDIENTE';
-                const borderColor = isConfirmed ? '#27ae60' : '#e67e22'; // Verde para Confirmado, Naranja para Pendiente
-                const titleColor = isConfirmed ? '#27ae60' : '#e67e22';
-
-                const ticketContent = `
-                    <!DOCTYPE html>
-                    <html lang="es">
-                    <head>
-                        <title>${ticketTitle}: ${reserva.nombre} - ${reserva.dni}</title>
-                        <style>
-                            /* Estilos para la entrada */
-                            body { font-family: 'Arial', sans-serif; margin: 0; background-color: #f4f4f4; padding: 20px; }
-                            .ticket-container { 
-                                width: 400px; 
-                                margin: 20px auto; 
-                                border: 2px solid ${borderColor}; 
-                                padding: 20px; 
-                                border-radius: 10px; 
-                                background-color: white;
-                                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-                                box-sizing: border-box;
-                            }
-                            .header { text-align: center; border-bottom: 2px dashed ${borderColor}; padding-bottom: 10px; margin-bottom: 15px; }
-                            .header h2 { color: ${titleColor}; margin: 0; }
-                            .details p { margin: 5px 0; font-size: 1.1em; }
-                            .details strong { display: inline-block; width: 120px; color: #34495e; }
-                            .seats { 
-                                margin-top: 15px; 
-                                padding: 10px; 
-                                border: 1px solid #ccc; 
-                                border-radius: 5px; 
-                                background-color: #ecf0f1;
-                            }
-                            .seats span { font-size: 1.3em; color: #e74c3c; font-weight: bold; }
-                            .footer { text-align: center; margin-top: 20px; font-size: 0.9em; color: #7f8c8d; }
-                            .print-button {
-                                display: block; 
-                                width: 100%; 
-                                padding: 10px; 
-                                margin-top: 20px; 
-                                background-color: #3498db; 
-                                color: white; 
-                                border: none; 
-                                border-radius: 5px; 
-                                cursor: pointer;
-                                font-size: 1.1em;
-                            }
-                            /* Media Query para la impresión */
-                            @media print {
-                                .print-button { display: none; }
-                                body { background-color: white; padding: 0; }
-                                .ticket-container { border: none; box-shadow: none; width: auto; }
-                            }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="ticket-container">
-                            <div class="header">
-                                <h2>🎫 ${ticketTitle}</h2>
-                                <p>Meraki - Bailemos Mov</p>
-                            </div>
-
-                            <div class="details">
-                                <p><strong>Familia:</strong> ${reserva.nombre}</p>
-                                <p><strong>DNI:</strong> ${reserva.dni}</p>
-                                <p><strong>Cantidad:</strong> ${reserva.cantidad} Butaca(s)</p>
-                                <p><strong>Total Pagado:</strong> $${costoTotal.toLocaleString('es-AR')}</p>
-                                <p><strong>Referencia:</strong> ${referenciaDisplay}</p>
-                                <p><strong>Fecha Venta:</strong> ${date} ${time}</p>
-                            </div>
-
-                            <div class="seats">
-                                <p style="font-weight: bold; margin-bottom: 5px;">BUTACAS ASIGNADAS:</p>
-                                <span>${butacasList}</span>
-                            </div>
-
-                            <div class="footer">
-                                <p>¡Presentar este comprobante (impreso o digital) para el ingreso! ${isConfirmed ? '' : ' (Sujeto a Confirmación de Pago)'}</p>
-                            </div>
-                            
-                            <button class="print-button" onclick="window.print()">Guardar como PDF / Imprimir</button>
-                        </div>
-                    </body>
-                    </html>
-                `;
-
-                const newWindow = window.open('', '_blank', 'width=500,height=700');
-                newWindow.document.write(ticketContent);
-                newWindow.document.close();
-                newWindow.focus();
-
-            } catch (error) {
-                console.error("Error al visualizar la entrada:", error);
-                alert("Ocurrió un error al cargar los datos de la entrada.");
-            }
-        }
-
-
-        // --- RENDERIZADO DE DATOS ---
-
+        // --- INICIALIZACIÓN DE LA PÁGINA ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Escuchadores de Firebase para actualizar las tablas y el mapa en tiempo real
-            db.ref('preReservas').on('value', (snapshot) => {
-                const reservas = snapshot.val() || {};
-                renderReservas(reservas); 
-            });
-            
-            db.ref('reservasConfirmadas').on('value', (snapshot) => {
-                const cupos = snapshot.val() || {};
-                renderReservasConfirmadas(cupos);
-            });
-            
-            db.ref('asientos').on('value', (snapshot) => {
-                const asientos = snapshot.val() || [];
-                renderAuditoriumAdmin(asientos);
-            });
+            initAdminDashboard();
         });
+        
+        function initAdminDashboard() {
+            // Sincronizar Cupos
+            db.ref('reservasConfirmadas').on('value', (snapshot) => {
+                renderCupos(snapshot.val());
+            });
 
-        /** Muestra la tabla de RESERVAS (PENDIENTES y CONFIRMADAS) */
-        function renderReservas(reservas) {
-            const tbody = document.querySelector('#reservas-pendientes-table tbody');
-            tbody.innerHTML = '';
-            const now = Date.now();
+            // Sincronizar Asientos (para el mapa)
+            db.ref('asientos').on('value', (snapshot) => {
+                renderSeatMap(snapshot.val() || []);
+            });
+
+            // Sincronizar Pre-Reservas
+            db.ref('preReservas').on('value', (snapshot) => {
+                renderReservas(snapshot.val());
+            });
+        }
+        
+        // --- LÓGICA DE GESTIÓN DE CUPOS ---
+        function addOrUpdateCupo() {
+            const apellido = document.getElementById('cupo-apellido').value.trim();
+            const dni = document.getElementById('cupo-dni').value.trim();
+            const entradas = parseInt(document.getElementById('cupo-entradas').value);
+
+            if (!apellido || !dni || isNaN(entradas) || entradas <= 0) {
+                alert("Por favor, complete todos los campos de cupo correctamente.");
+                return;
+            }
             
-            Object.keys(reservas).forEach(key => {
-                const reserva = reservas[key];
+            // 1. Buscar si el DNI ya existe
+            db.ref('reservasConfirmadas').orderByChild('dni').equalTo(dni).once('value', (snapshot) => {
+                const data = snapshot.val();
+                let ref;
                 
-                const butacasVisual = reserva.butacas_visuales ? reserva.butacas_visuales.join(', ') : 'N/A';
-                const butacasInternal = reserva.butacas_internal_ids ? reserva.butacas_internal_ids.join(',') : ''; 
-                
-                const isExpired = reserva.estado === 'PENDIENTE' && reserva.expiracion < now;
-                
-                const expirationDate = reserva.expiracion ? new Date(reserva.expiracion).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
-                const estadoClass = `status-${reserva.estado.toLowerCase()}`;
-                
-                let accionesHTML;
-                
-                // Botón "Ver Entrada" siempre visible
-                const viewButton = `<button class="btn-confirm btn-view" onclick="visualizarEntrada('${key}')" title="Ver Comprobante de Entrada">🎫</button>`;
-
-                if (reserva.estado === 'PENDIENTE') {
-                    // BOTONES PARA RESERVAS PENDIENTES
-                    accionesHTML = `
-                        ${viewButton}
-                        <button class="btn-confirm" onclick="confirmarReserva('${key}', '${butacasInternal}')">Confirmar</button>
-                        <button class="btn-delete" onclick="eliminarReserva('${key}', '${butacasInternal}')">Cancelar</button>
-                    `;
-                    if (isExpired) {
-                        // Resaltar si está expirada
-                        accionesHTML = `<span style="color: red; font-weight: bold;">EXPIRADA</span> ` + accionesHTML;
-                    }
-                } else { // CONFIRMADO
-                    // BOTONES PARA RESERVAS CONFIRMADAS
-                    accionesHTML = `
-                        ${viewButton}
-                        <button class="btn-delete" onclick="eliminarReserva('${key}', '${butacasInternal}')" title="Elimina la venta y libera asientos">Liberar</button>
-                    `;
+                if (data) {
+                    // Actualizar existente (Esto podría ser lo que usted ve como "borrar uno" si el DNI que ingresa ya existía)
+                    ref = Object.keys(data)[0];
+                    db.ref(`reservasConfirmadas/${ref}`).update({
+                        apellido: apellido,
+                        entradas: entradas
+                    }).then(() => {
+                        alert(`Cupo de la Familia ${apellido} (DNI: ${dni}) actualizado a ${entradas} entradas.`);
+                    });
+                } else {
+                    // Añadir nuevo (Firebase automáticamente asigna una nueva clave única, sin límite de 73)
+                    db.ref('reservasConfirmadas').push({
+                        apellido: apellido,
+                        dni: dni,
+                        entradas: entradas
+                    }).then(() => {
+                        alert(`Nuevo cupo para Familia ${apellido} (DNI: ${dni}) con ${entradas} entradas añadido.`);
+                    });
                 }
+                
+                // Limpiar campos
+                document.getElementById('cupo-apellido').value = '';
+                document.getElementById('cupo-dni').value = '';
+                document.getElementById('cupo-entradas').value = '';
+            });
+        }
 
-                const costoTotalDisplay = reserva.costo_total !== undefined && reserva.costo_total !== null
-                                        ? `$${reserva.costo_total.toLocaleString('es-AR')}` : 'N/A';
-                
-                const refDisplay = reserva.referencia ? reserva.referencia.substring(4) : key;
-                
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${refDisplay}</td>
-                    <td>${reserva.dni}</td>
-                    <td>${reserva.nombre}</td>
-                    <td>${reserva.email || 'N/A'}</td>
-                    <td>${reserva.cantidad}</td>
-                    <td>${butacasVisual}</td>
-                    <td>${costoTotalDisplay}</td>
-                    <td class="${estadoClass}">${reserva.estado}</td>
-                    <td>${expirationDate}</td>
-                    <td>${accionesHTML}</td>
+        function deleteCupo(key, apellido, dni) {
+            if (confirm(`¿Está seguro de eliminar el cupo de la Familia ${apellido} (DNI: ${dni})? Esto no afecta reservas ya confirmadas.`)) {
+                db.ref(`reservasConfirmadas/${key}`).remove()
+                    .then(() => {
+                        alert(`Cupo de ${apellido} eliminado.`);
+                    })
+                    .catch(error => {
+                        console.error("Error al eliminar cupo:", error);
+                        alert("Error al eliminar el cupo.");
+                    });
+            }
+        }
+
+        function renderCupos(cuposData) {
+            const list = document.getElementById('cupo-list');
+            list.innerHTML = '';
+            if (!cuposData) return;
+
+            Object.keys(cuposData).forEach(key => {
+                const cupo = cuposData[key];
+                const item = document.createElement('li');
+                item.className = 'cupo-item';
+                item.innerHTML = `
+                    <span>**Familia ${cupo.apellido}** (DNI: ${cupo.dni}) - **${cupo.entradas}** entradas</span>
+                    <span class="cupo-actions">
+                        <button onclick="deleteCupo('${key}', '${cupo.apellido}', '${cupo.dni}')">Eliminar</button>
+                    </span>
                 `;
+                list.appendChild(item);
             });
         }
         
-        /** Muestra la tabla de cupos autorizados (reservasConfirmadas) */
-        function renderReservasConfirmadas(cupos) {
-            const tbody = document.querySelector('#reservas-confirmadas-table tbody');
-            tbody.innerHTML = '';
-            
-            Object.keys(cupos).forEach(key => {
-                const cupo = cupos[key];
-                
-                const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${cupo.dni}</td>
-                    <td>${cupo.apellido}</td>
-                    <td>${cupo.entradas}</td>
-                    <td>
-                        <button onclick="eliminarCupo('${key}', '${cupo.dni}')" class="btn-delete">Eliminar</button>
-                    </td>
-                `;
-            });
+        function clearAllCupos() {
+             if (confirm("⚠️ ¡ADVERTENCIA! ¿Está absolutamente seguro de BORRAR TODOS los cupos autorizados? Esto es irreversible.")) {
+                 db.ref('reservasConfirmadas').remove()
+                    .then(() => alert("TODOS los cupos han sido eliminados."))
+                    .catch(error => alert("Error al eliminar cupos."));
+             }
         }
-        
-        /** Dibuja el mapa de asientos para el administrador */
-        function renderAuditoriumAdmin(asientos) {
-            const container = document.getElementById('seat-map-admin-container');
+
+        // --- LÓGICA DE GESTIÓN DEL MAPA ---
+        let currentAsientos = []; 
+        function renderSeatMap(asientos) {
+            currentAsientos = asientos;
+            const container = document.getElementById('seat-map-management');
             container.innerHTML = '';
 
             for (const [filaLabel, asientosFila] of Object.entries(DISENO_AUDITORIO)) {
                 const rowDiv = document.createElement('div');
-                rowDiv.className = 'row-container-admin';
+                rowDiv.className = 'row-container';
+
                 const labelDiv = document.createElement('div');
-                labelDiv.className = 'row-label-admin';
+                labelDiv.className = 'row-label';
                 labelDiv.textContent = filaLabel.replace('Fila ', 'F');
                 rowDiv.appendChild(labelDiv);
 
@@ -656,11 +469,14 @@
                     const seatDiv = document.createElement('div');
                     
                     if (butacaNum === null) {
-                        seatDiv.className = 'seat-admin empty';
+                        seatDiv.className = 'seat seat-empty';
+                        seatDiv.style.width = '10px'; 
+                        seatDiv.style.margin = '2px 5px';
                     } else {
-                        const seatIdInternal = `${filaLabel.replace(' ', '')}-${butacaNum}`;
-                        seatDiv.className = 'seat-admin';
+                        const seatIdInternal = `${filaLabel.replace(' ', '')}-${butacaNum}`; 
+                        seatDiv.className = 'seat';
                         seatDiv.textContent = butacaNum;
+                        seatDiv.dataset.id = seatIdInternal;
 
                         let status = 'disponible';
                         if (asientos.includes(`${seatIdInternal}-CONFIRMADO`)) {
@@ -668,14 +484,263 @@
                         } else if (asientos.includes(`${seatIdInternal}-PENDIENTE`)) {
                             status = 'pendiente';
                         }
-                        
+
                         seatDiv.classList.add(status);
+                        
+                        if (status !== 'disponible') {
+                           seatDiv.onclick = () => releaseSeat(seatIdInternal, status);
+                        }
                     }
                     rowDiv.appendChild(seatDiv);
                 });
                 container.appendChild(rowDiv);
             }
         }
+        
+        function releaseSeat(seatIdInternal, status) {
+            if (!confirm(`¿Está seguro de liberar la butaca ${seatIdInternal} (${status.toUpperCase()})? Se buscará la reserva asociada para eliminarla.`)) {
+                return;
+            }
+            
+            // 1. Eliminar asiento de la lista global de asientos
+            const asientoToRemove = `${seatIdInternal}-${status.toUpperCase()}`;
+            
+            db.ref('asientos').transaction((currentAsientos) => {
+                if (currentAsientos) {
+                    return currentAsientos.filter(id => id !== asientoToRemove);
+                }
+                return [];
+            }, (error, committed) => {
+                if (error || !committed) {
+                    alert('Error al liberar el asiento. Intente de nuevo.');
+                    return;
+                }
+                
+                // 2. Buscar y eliminar la pre-reserva asociada
+                db.ref('preReservas').orderByChild('butacas_internal_ids').once('value', (snapshot) => {
+                    let reservationDeleted = false;
+                    snapshot.forEach(childSnapshot => {
+                        const reserva = childSnapshot.val();
+                        // Nota: Se busca en todas las preReservas, incluso si la butaca es CONFIRMADA (caso de liberación manual)
+                        if (reserva.butacas_internal_ids && reserva.butacas_internal_ids.includes(seatIdInternal) && reserva.estado === status.toUpperCase()) {
+                             db.ref(`preReservas/${childSnapshot.key}`).remove()
+                                .then(() => {
+                                    alert(`Butaca ${seatIdInternal} liberada y pre-reserva eliminada.`);
+                                    reservationDeleted = true;
+                                })
+                                .catch(e => {
+                                    console.error("Error al eliminar preReserva:", e);
+                                    alert(`Butaca ${seatIdInternal} liberada, pero hubo un error al eliminar la pre-reserva asociada. Revisar manualmente.`);
+                                });
+                             return true; // Detener forEach
+                        }
+                    });
+                    if (!reservationDeleted) {
+                        alert(`Butaca ${seatIdInternal} liberada. No se encontró pre-reserva asociada (esto es normal si era CONFIRMADO o PENDIENTE sin reserva registrada).`);
+                    }
+                });
+            });
+        }
+        
+        function clearAllReservasAndAsientos() {
+             if (confirm("⚠️ ¡ADVERTENCIA! ¿Está absolutamente seguro de BORRAR TODAS las Pre-Reservas y TODOS los Asientos Ocupados? Esto es irreversible y reinicia el mapa.")) {
+                 db.ref('preReservas').remove();
+                 db.ref('asientos').remove()
+                    .then(() => alert("TODAS las reservas y asientos han sido reiniciados."))
+                    .catch(error => alert("Error al reiniciar datos."));
+             }
+        }
+
+        // --- LÓGICA DE GESTIÓN DE PRE-RESERVAS ---
+        function renderReservas(reservasData) {
+            const tbody = document.querySelector('#reservas-list tbody');
+            tbody.innerHTML = '';
+            if (!reservasData) return;
+
+            Object.keys(reservasData).sort((a, b) => {
+                 // Ordenar PENDIENTES primero, luego CONFIRMADOS, luego EXPIRADOS
+                 const estadoA = reservasData[a].estado;
+                 const estadoB = reservasData[b].estado;
+                 
+                 if (estadoA === 'PENDIENTE' && estadoB !== 'PENDIENTE') return -1;
+                 if (estadoA !== 'PENDIENTE' && estadoB === 'PENDIENTE') return 1;
+                 if (estadoA === 'CONFIRMADO' && estadoB === 'EXPIRADO') return -1;
+                 if (estadoA === 'EXPIRADO' && estadoB === 'CONFIRMADO') return 1;
+                 
+                 // Ordenar por tiempo (más reciente primero)
+                 return reservasData[b].timestamp - reservasData[a].timestamp;
+            }).forEach(key => {
+                const reserva = reservasData[key];
+                const expiraTexto = formatExpiration(reserva.expiracion, reserva.estado);
+
+                const row = tbody.insertRow();
+                row.className = `estado-${reserva.estado}`;
+                row.innerHTML = `
+                    <td>${reserva.referencia}</td>
+                    <td>${reserva.nombre}<br>(${reserva.dni})</td>
+                    <td>${reserva.cantidad}</td>
+                    <td>${reserva.butacas_visuales.join(', ')}</td>
+                    <td>$${reserva.costo_total ? reserva.costo_total.toLocaleString('es-AR') : 0}</td>
+                    <td>${reserva.estado}</td>
+                    <td>${expiraTexto}</td>
+                    <td>
+                        ${reserva.estado === 'PENDIENTE' ? `<button class="action-button btn-confirm" onclick="confirmReserva('${key}', ${reserva.cantidad}, '${reserva.dni}', ${reserva.costo_total}, ${reserva.butacas_internal_ids.length > 0 ? `'${reserva.butacas_internal_ids.join(',')}'` : 'null'})">Confirmar</button>` : ''}
+                        ${reserva.estado !== 'EXPIRADO' ? `<button class="action-button btn-cancel" onclick="cancelReserva('${key}', ${reserva.butacas_internal_ids.length > 0 ? `'${reserva.butacas_internal_ids.join(',')}'` : 'null'})">Cancelar</button>` : ''}
+                    </td>
+                `;
+            });
+        }
+        
+        function formatExpiration(expiracionTimestamp, estado) {
+            if (estado === 'CONFIRMADO') return '---';
+            if (estado === 'EXPIRADO') return '¡EXPIRÓ!';
+            
+            const expiraDate = new Date(expiracionTimestamp);
+            const now = Date.now();
+            
+            if (expiraDate.getTime() < now) {
+                return '¡EXPIRÓ!';
+            }
+            
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            const timeString = expiraDate.toLocaleTimeString('es-AR', timeOptions);
+            
+            const remainingMs = expiraDate.getTime() - now;
+            const remainingMinutes = Math.floor(remainingMs / (1000 * 60));
+            const remainingSeconds = Math.floor((remainingMs % (1000 * 60)) / 1000);
+            
+            return `A las ${timeString} (${remainingMinutes}m ${remainingSeconds}s)`;
+        }
+
+        // --- ACCIONES DE GESTIÓN DE RESERVAS ---
+        
+        async function confirmReserva(key, cantidad, dni, costo, butacasStr) {
+            if (!confirm("¿Confirma la transferencia y venta de estas butacas?")) return;
+
+            const butacas = butacasStr ? butacasStr.split(',') : [];
+            const newAsientosPendientes = butacas.map(id => `${id}-PENDIENTE`);
+            const newAsientosConfirmados = butacas.map(id => `${id}-CONFIRMADO`);
+            
+            // 1. Transacción para mover asientos de PENDIENTE a CONFIRMADO
+            const asientosRef = db.ref('asientos');
+            await asientosRef.transaction((currentAsientos) => {
+                let asientos = currentAsientos || [];
+                
+                // Remover PENDIENTES y añadir CONFIRMADOS
+                asientos = asientos.filter(id => !newAsientosPendientes.includes(id));
+                newAsientosConfirmados.forEach(id => {
+                    if (!asientos.includes(id)) {
+                        asientos.push(id);
+                    }
+                });
+                return asientos;
+            }, (error, committed) => {
+                if (error || !committed) {
+                    alert('Error en la transacción de asientos. No se pudo confirmar.');
+                    return;
+                }
+                
+                // 2. Actualizar la preReserva a CONFIRMADO
+                db.ref(`preReservas/${key}`).update({
+                    estado: 'CONFIRMADO',
+                    timestamp_confirmacion: Date.now()
+                }).then(() => {
+                    alert(`Reserva ${key} CONFIRMADA. Asientos actualizados.`);
+                }).catch(e => {
+                    console.error("Error al actualizar preReserva:", e);
+                    alert("Error al actualizar estado de la pre-reserva.");
+                });
+            });
+        }
+        
+        function cancelReserva(key, butacasStr) {
+            if (!confirm("¿Está seguro de CANCELAR esta reserva? Los asientos se liberarán.")) return;
+
+            const butacas = butacasStr ? butacasStr.split(',') : [];
+            const currentRef = db.ref(`preReservas/${key}`);
+            
+            currentRef.once('value').then(snapshot => {
+                const reserva = snapshot.val();
+                if (!reserva) return;
+                
+                const statusToCancel = reserva.estado;
+                const asientosToRemove = butacas.map(id => `${id}-${statusToCancel}`);
+                
+                // 1. Eliminar asientos del mapa
+                db.ref('asientos').transaction((currentAsientos) => {
+                    if (currentAsientos) {
+                        return currentAsientos.filter(id => !asientosToRemove.includes(id));
+                    }
+                    return [];
+                }, (error, committed) => {
+                    if (error || !committed) {
+                        alert('Error al liberar los asientos. No se pudo cancelar completamente.');
+                        return;
+                    }
+                    
+                    // 2. Eliminar la preReserva
+                    currentRef.remove().then(() => {
+                        alert(`Reserva ${key} CANCELADA y asientos liberados.`);
+                    }).catch(e => {
+                        console.error("Error al eliminar preReserva:", e);
+                        alert("Error al eliminar la pre-reserva.");
+                    });
+                });
+            });
+        }
+        
+        function checkExpiredReservations() {
+            if (!confirm("¿Desea revisar y EXPIRAR todas las pre-reservas que hayan superado el límite de 30 minutos?")) return;
+
+            const now = Date.now();
+            const preReservasRef = db.ref('preReservas');
+
+            preReservasRef.once('value', (snapshot) => {
+                let countExpired = 0;
+                let asientosToExpire = [];
+                
+                snapshot.forEach(childSnapshot => {
+                    const key = childSnapshot.key;
+                    const reserva = childSnapshot.val();
+
+                    if (reserva.estado === 'PENDIENTE' && reserva.expiracion && reserva.expiracion < now) {
+                        countExpired++;
+                        
+                        // 1. Marcar la reserva como EXPIRADA
+                        db.ref(`preReservas/${key}`).update({
+                            estado: 'EXPIRADO',
+                            timestamp_expiracion: now
+                        });
+
+                        // 2. Recolectar asientos a liberar
+                        if (reserva.butacas_internal_ids) {
+                            reserva.butacas_internal_ids.forEach(id => {
+                                asientosToExpire.push(`${id}-PENDIENTE`);
+                            });
+                        }
+                    }
+                });
+                
+                if (countExpired > 0) {
+                    // 3. Transacción para liberar todos los asientos expirados
+                    db.ref('asientos').transaction((currentAsientos) => {
+                        if (currentAsientos) {
+                            return currentAsientos.filter(id => !asientosToExpire.includes(id));
+                        }
+                        return [];
+                    }, (error, committed) => {
+                        if (error || !committed) {
+                            alert(`Se expiraron ${countExpired} reservas, pero hubo un error al liberar algunos asientos.`);
+                        } else {
+                            alert(`Proceso finalizado: ${countExpired} pre-reservas expiradas y sus asientos liberados.`);
+                        }
+                    });
+                } else {
+                    alert("No se encontraron pre-reservas pendientes que hayan expirado.");
+                }
+            });
+        }
+
     </script>
 </body>
 </html>
